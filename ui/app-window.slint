@@ -1,0 +1,129 @@
+import { VerticalBox, Button } from "std-widgets.slint";
+
+struct Drone {
+    id : int,
+    crashed: bool,
+    adjent: [int],
+    pdr: float,
+}
+
+
+component Drone inherits Rectangle{
+    callback clicked;
+    in property <int> id;
+
+    height: 64px;
+    width: 64px;
+    background: #3960D5;
+    border-radius: self.width/2;
+    // animate background { duration: 800ms; } //-> MAYBE LATER
+
+    Text {
+        text: "Drone" + id;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+        color: black;
+    }
+
+    TouchArea {
+        clicked => {
+            // Delegate to the user of this element
+            // parent.background = #FF0000;
+            clicked(); // to call the specific on circle
+        }
+    }
+}
+
+
+component LeftMenu inherits GridLayout {
+    callback select_file();
+    width: 300px;
+    height: 500px;
+    in property <string> selected_file;
+
+    Row{
+        Rectangle {
+            // width: width;
+            height: 50px;
+            color: #a0b1e4;
+            border-color: black;
+            border-width: 0.5px;
+            Text {
+                text: "General Control";
+                horizontal-alignment: center;
+                vertical-alignment: center;
+                color: black;
+            }
+        }
+    }
+
+    Row{
+        Button {
+            text: "Select File";
+            width: 200px;
+            height: 50px;
+    
+            clicked => {
+                // Trigger the callback to select a file (defined in Rust)
+                select_file();
+            }
+        }
+    
+        // Text displaying the selected file path
+        Text {
+            text: selected_file;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+            color: black;
+            font-size: 16px;
+            width: 200px;
+            height: 50px;
+        }
+
+    }
+}
+
+
+export component MainWindow inherits Window {
+    callback clicked;
+    callback select_file;
+    width: 800px;
+    height: 1080px;
+
+
+
+    in property <[Drone]> drones: [
+        {id:0, crashed: false},
+        {id:1, crashed: false},
+        {id:2, crashed: false},
+        {id:3, crashed: false},
+        {id:4, crashed: false},
+        {id:5, crashed: false},
+        {id:6, crashed: false},
+        {id:7, crashed: false},
+        {id:8, crashed: false},
+        {id:9, crashed: false},
+    ];
+    
+    for drone[i] in drones : Drone {
+        width: 64px;
+        height: 64px;
+        x: parent.width/2.15 + (parent.height / 3) * cos(2 * 1rad * 3.14159 * i /10) + (self.width / 2);
+        y: parent.height/2.5 +(parent.height / 3) * sin(2 * 1rad* 3.14159 * i / 10) + (self.height / 3);    
+        id: drone.id;
+        // propagate the solved status from the model to the tile
+        clicked => {
+            // drone.image_visible = !drone.image_visible;
+            clicked();
+        }
+    }
+
+    LeftMenu {
+        x: 0;
+        y: 0;
+        select_file => {
+            // Trigger the callback to select a file (defined in Rust)
+            select_file();
+        }
+    }
+}

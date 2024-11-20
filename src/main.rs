@@ -1,59 +1,37 @@
-use crossbeam::channel::{self, Sender, Receiver};
-use std::thread;
-use std::io;
+slint::include_modules!();
+use rfd::FileDialog;
+use network_initializer::{NetworkInitializer};
+// use slint::Model;
 
-#[derive(Debug)]
-struct Message{
-    // text: String,
-    from : From,
-}
 
-// proposta di messaggio
-#[derive(Debug)]
-enum From{
-    Internal(InternalEvent),
-    External(ExternalEvent),
-}
+fn main() -> Result<(), slint::PlatformError> {
 
-#[derive(Debug)]
-enum ExternalEvent{
-    ToCrash(u64), // u64 = NodeId
-    //... -> da aggiungere tutti gli altri che ci sono nel protocollo appena sono sistemati (ora sono un po sus)
-}
+    let main_window = MainWindow::new()?;
 
-#[derive(Debug)]
-enum InternalEvent{
-    Topology(u64, Vec<u64>, String), // esempio (come sopra) 
-}
+    main_window.on_clicked(move || {
+        println!("CIAO");
+    });
 
-// TODO: everything will be executed on a thread meanwhile I will test it without it :)
-fn main() {
+    main_window.on_select_file(move || {
+        println!("[] FILE SELECTION");
+        let file = FileDialog::new().pick_file();
+        if let Some(mut path)= file {
+            println!("File selected: {:?}", path.as_mut_os_str());
+            // INTEGRARE CODICE NEWTWORK INITIALIZER
 
-    // channel where the simulation controller can receive messages --> non so se debba essere fatto qua questo canale o me lo passi qualcuno
-    let (tx, rx) : (Sender<Message>, Receiver<Message>) = channel::unbounded(); // questo dipenderà dal protocollo 
+            // // TO IMPLEMENT the spawn of the drones
+            // let mut network = NetworkInitializer::new(Some(path));
+            // let config = NetworkInitializer::new(Some(path));
+            // assert!(config.is_ok(), "{}", config.err().unwrap());
+            // let config = config.unwrap();
+            // // println!("{config:#?}");
+            // config.run_simulation();
 
-    // thread per ricevere input da command-line
-    thread::spawn(move || {
-        let mut input = String::from("");
-        loop{
-            input = String::from("");
-            io::stdin().read_line(&mut input).expect("Failed to read line");
-            input = String::from(input.trim());
-            
-            // TODO: parse the input and
-            // - option 1 -> call the handler from there
-            // - option 2 -> craft a message and send it to the thread handling messages from the nodes 
-            // let _ = tx.send(Message{text:input.clone()}); // op2
+
+        }else{
+            println!("No file selected\nTry again");
         }
     });
 
-    // loop that calls the handler -> si può fare un thread se preferite ma secondo me non è necessario perchè è quello che deve fare
-    loop{
-        for rec in rx.iter(){
-            // call the handler based on the message
-        }
-    }
-
-
-
+    main_window.run()
 }
