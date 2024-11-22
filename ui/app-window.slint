@@ -9,8 +9,8 @@ struct Drone {
 
 
 component Drone inherits Rectangle{
-    callback clicked;
-    in property <int> id;
+    callback open_right_window;
+    in property <string> label_id;
 
     height: 64px;
     width: 64px;
@@ -19,7 +19,7 @@ component Drone inherits Rectangle{
     // animate background { duration: 800ms; } //-> MAYBE LATER
 
     Text {
-        text: "Drone" + id;
+        text: label_id;
         horizontal-alignment: center;
         vertical-alignment: center;
         color: black;
@@ -29,7 +29,7 @@ component Drone inherits Rectangle{
         clicked => {
             // Delegate to the user of this element
             // parent.background = #FF0000;
-            clicked(); // to call the specific on circle
+            open_right_window(); // to call the specific on circle
         }
     }
 }
@@ -37,6 +37,7 @@ component Drone inherits Rectangle{
 
 component LeftMenu inherits GridLayout {
     callback select_file();
+    visible: true;
     width: 300px;
     height: 500px;
     in property <string> selected_file;
@@ -83,11 +84,51 @@ component LeftMenu inherits GridLayout {
     }
 }
 
+export component RightMenu inherits GridLayout {
+    callback crash();
+    visible: false;
+    width: 300px;
+    height: 500px;
+    in property <string> label_id;
+
+    Row{
+        Rectangle {
+            // width: width;
+            height: 50px;
+            color: #a0b1e4;
+            border-color: black;
+            border-width: 0.5px;
+            Text {
+                text: "Node Control : " + label_id;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+                color: black;
+            }
+        }
+    }
+
+    Row{
+        Button {
+            text: "Crash drone";
+            width: 200px;
+            height: 50px;
+    
+            clicked => {
+                // Trigger the callback to select a file (defined in Rust)
+                crash();
+            }
+        }
+
+    }
+}
+
+
 
 export component MainWindow inherits Window {
-    callback clicked;
+    callback open_right_window;
     callback select_file;
-    width: 800px;
+    callback crash();
+    width: 1800px;
     height: 1080px;
 
 
@@ -110,20 +151,76 @@ export component MainWindow inherits Window {
         height: 64px;
         x: parent.width/2.15 + (parent.height / 3) * cos(2 * 1rad * 3.14159 * i /10) + (self.width / 2);
         y: parent.height/2.5 +(parent.height / 3) * sin(2 * 1rad* 3.14159 * i / 10) + (self.height / 3);    
-        id: drone.id;
+        label_id: "Drone" + drone.id;
         // propagate the solved status from the model to the tile
-        clicked => {
+        open_right_window => {
             // drone.image_visible = !drone.image_visible;
-            clicked();
+            
         }
     }
 
+    in property <[Drone]> clients: [
+        {id:10, crashed: false},
+        {id:11, crashed: false},
+    ];
+
+    for client[i] in clients : Drone {
+        width: 64px;
+        height: 64px;
+        x: parent.width/5;
+        y: parent.height/3 +i*175px;  
+        label_id: "Client" + client.id;
+        background: red;
+    //     // propagate the solved status from the model to the tile
+    //     clicked => {
+    //         // drone.image_visible = !drone.image_visible;
+    //         clicked();
+    //     }
+        open_right_window => {
+            // drone.image_visible = !drone.image_visible;
+            open_right_window();
+        }
+    }
+
+    in property <[Drone]> servers: [
+        {id:12, crashed: false},
+        {id:13, crashed: false},
+    ];
+
+    for server[i] in servers : Drone {
+        width: 64px;
+        height: 64px;
+        x: parent.width/5 + 2*parent.height / 3 + 275px; 
+        y: parent.height/3 +i*175px;  
+        label_id: "Server" + server.id;
+        background: green;
+    //     // propagate the solved status from the model to the tile
+    //     clicked => {
+    //         // drone.image_visible = !drone.image_visible;
+    //         clicked();
+    //     }
+        open_right_window => {
+            // drone.image_visible = !drone.image_visible;
+            open_right_window();
+        }
+    }
+    
+
     LeftMenu {
         x: 0;
-        y: 0;
+        y: parent.height/2;
         select_file => {
             // Trigger the callback to select a file (defined in Rust)
             select_file();
+        }
+    }
+
+    RightMenu {
+        x: parent.width - 300px;
+        y: parent.height/2;
+        crash => {
+            // Trigger the callback to select a file (defined in Rust)
+            crash();
         }
     }
 }
