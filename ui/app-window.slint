@@ -85,8 +85,8 @@ component LeftMenu inherits GridLayout {
 }
 
 export component RightMenu inherits GridLayout {
-    callback crash();
-    visible: false;
+    callback crash_drone();
+    visible: true;
     width: 300px;
     height: 500px;
     in property <string> label_id;
@@ -115,7 +115,7 @@ export component RightMenu inherits GridLayout {
     
             clicked => {
                 // Trigger the callback to select a file (defined in Rust)
-                crash();
+                crash_drone();
             }
         }
 
@@ -127,13 +127,14 @@ export component RightMenu inherits GridLayout {
 export component MainWindow inherits Window {
     callback open_right_window;
     callback select_file;
-    callback crash();
+    callback crash_drone();
     width: 1800px;
     height: 1080px;
+    property <int> id_selected_drone;
 
 
 
-    in property <[Drone]> drones: [
+    property <[Drone]> drones: [
         {id:0, crashed: false},
         {id:1, crashed: false},
         {id:2, crashed: false},
@@ -152,10 +153,12 @@ export component MainWindow inherits Window {
         x: parent.width/2.15 + (parent.height / 3) * cos(2 * 1rad * 3.14159 * i /10) + (self.width / 2);
         y: parent.height/2.5 +(parent.height / 3) * sin(2 * 1rad* 3.14159 * i / 10) + (self.height / 3);    
         label_id: "Drone" + drone.id;
-        // propagate the solved status from the model to the tile
+        background: drones[i].crashed ? #65839b4e : #3960D5;
+        
         open_right_window => {
-            // drone.image_visible = !drone.image_visible;
-            
+            if !drones[i].crashed {
+                id_selected_drone = drone.id;
+            }
         }
     }
 
@@ -176,10 +179,6 @@ export component MainWindow inherits Window {
     //         // drone.image_visible = !drone.image_visible;
     //         clicked();
     //     }
-        open_right_window => {
-            // drone.image_visible = !drone.image_visible;
-            open_right_window();
-        }
     }
 
     in property <[Drone]> servers: [
@@ -199,10 +198,6 @@ export component MainWindow inherits Window {
     //         // drone.image_visible = !drone.image_visible;
     //         clicked();
     //     }
-        open_right_window => {
-            // drone.image_visible = !drone.image_visible;
-            open_right_window();
-        }
     }
     
 
@@ -210,17 +205,19 @@ export component MainWindow inherits Window {
         x: 0;
         y: parent.height/2;
         select_file => {
-            // Trigger the callback to select a file (defined in Rust)
             select_file();
         }
     }
 
     RightMenu {
-        x: parent.width - 300px;
+        x: parent.width - self.width;
         y: parent.height/2;
-        crash => {
-            // Trigger the callback to select a file (defined in Rust)
-            crash();
+        label_id: "drone" + id_selected_drone;
+        crash_drone => {
+            if !drones[id_selected_drone].crashed{
+                drones[id_selected_drone].crashed = true;
+                crash_drone();
+            }
         }
     }
 }

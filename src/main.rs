@@ -9,14 +9,7 @@ fn main() -> Result<(), slint::PlatformError> {
 
     let main_window = MainWindow::new()?;
 
-    main_window.on_open_right_window(move || {
-        println!("[] OPEN RIGHT WINDOW");
-        // TODO -> spawn the rigth window
-
-        // let right_menu : RightMenu = RightMenu::new();
-        // right_menu.run(); // Show as a separate window
-
-    });
+    
 
     main_window.on_select_file(move || {
         println!("[] FILE SELECTION");
