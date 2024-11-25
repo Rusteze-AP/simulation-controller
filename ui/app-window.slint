@@ -123,37 +123,29 @@ export component RightMenu inherits GridLayout {
 }
 
 
-
 export component MainWindow inherits Window {
     callback open_right_window;
     callback select_file;
     callback crash_drone();
+    callback clone_file();
     width: 1800px;
     height: 1080px;
     property <int> id_selected_drone;
-
-
-
-    property <[Drone]> drones: [
-        {id:0, crashed: false},
-        {id:1, crashed: false},
-        {id:2, crashed: false},
-        {id:3, crashed: false},
-        {id:4, crashed: false},
-        {id:5, crashed: false},
-        {id:6, crashed: false},
-        {id:7, crashed: false},
-        {id:8, crashed: false},
-        {id:9, crashed: false},
-    ];
+    in-out property <string> test;
+    in-out property <[Drone]> drones;
+    in-out property <[Drone]> clients;
+    in-out property <[Drone]> servers;
     
     for drone[i] in drones : Drone {
         width: 64px;
         height: 64px;
+        // circular positioning
         x: parent.width/2.15 + (parent.height / 3) * cos(2 * 1rad * 3.14159 * i /10) + (self.width / 2);
         y: parent.height/2.5 +(parent.height / 3) * sin(2 * 1rad* 3.14159 * i / 10) + (self.height / 3);    
         label_id: "Drone" + drone.id;
         background: drones[i].crashed ? #65839b4e : #3960D5;
+
+        // TODO: create connections between drones
         
         open_right_window => {
             if !drones[i].crashed {
@@ -162,10 +154,10 @@ export component MainWindow inherits Window {
         }
     }
 
-    in property <[Drone]> clients: [
-        {id:10, crashed: false},
-        {id:11, crashed: false},
-    ];
+    // [
+    //     {id:20, crashed: false},
+    //     {id:21, crashed: false},
+    // ];
 
     for client[i] in clients : Drone {
         width: 64px;
@@ -181,10 +173,10 @@ export component MainWindow inherits Window {
     //     }
     }
 
-    in property <[Drone]> servers: [
-        {id:12, crashed: false},
-        {id:13, crashed: false},
-    ];
+    // in property <[Drone]> servers:[
+    //     {id:30, crashed: false},
+    //     {id:31, crashed: false},
+    // ];
 
     for server[i] in servers : Drone {
         width: 64px;
@@ -212,11 +204,12 @@ export component MainWindow inherits Window {
     RightMenu {
         x: parent.width - self.width;
         y: parent.height/2;
-        label_id: "drone" + id_selected_drone;
+        label_id: "drone" + id_selected_drone + test;
         crash_drone => {
             if !drones[id_selected_drone].crashed{
                 drones[id_selected_drone].crashed = true;
                 crash_drone();
+                clone_file();
             }
         }
     }
