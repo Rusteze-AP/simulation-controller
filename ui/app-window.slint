@@ -1,4 +1,4 @@
-import { VerticalBox, Button } from "std-widgets.slint";
+import { VerticalBox, Button, LineEdit } from "std-widgets.slint";
 
 struct Drone {
     id : int,
@@ -7,6 +7,10 @@ struct Drone {
     pdr: float,
 }
 
+struct Edge{
+    id1: int,
+    id2: int,
+}
 
 component Drone inherits Rectangle{
     callback open_right_window;
@@ -32,6 +36,58 @@ component Drone inherits Rectangle{
             open_right_window(); // to call the specific on circle
         }
     }
+}
+
+component Edge inherits Path {
+    in property <int> x1;
+    in property <int> x2;
+    in property <int> y1;
+    in property <int> y2;
+    in-out property <float> start_x;
+    in-out property <float> start_y;
+    in-out property <float> end_x;
+    in-out property <float> end_y;
+
+    stroke: #000000;
+    stroke-width: 2px;
+
+    // LineTo {
+    //     x: 100;
+    //     y: 100;
+    // }
+
+    MoveTo {
+        x: start_x;
+        y: start_y;
+    }
+    LineTo {
+        x: end_x;
+        y: end_y;
+    }
+
+
+    // MoveTo {
+    //     x: 0;
+    //     y: 0;
+    // }
+    // LineTo {
+    //     x: 1;
+    //     y: 1;
+    // }
+    
+
+    // ArcTo {
+    //     radius-x: 1;
+    //     radius-y: 1;
+    //     x: 100;
+    //     y: 100;
+    // }
+    // LineTo {
+    //     x: 100;
+    //     y: 100;
+    // }
+    // Close {
+    // }
 }
 
 
@@ -86,6 +142,7 @@ component LeftMenu inherits GridLayout {
 
 export component RightMenu inherits GridLayout {
     callback crash_drone();
+    callback reactivate_drone();
     visible: true;
     width: 300px;
     height: 500px;
@@ -114,11 +171,21 @@ export component RightMenu inherits GridLayout {
             height: 50px;
     
             clicked => {
-                // Trigger the callback to select a file (defined in Rust)
                 crash_drone();
             }
         }
+    }
 
+    Row{
+        Button {
+            text: "Re-activate drone";
+            width: 200px;
+            height: 50px;
+    
+            clicked => {
+                reactivate_drone();
+            }
+        }
     }
 }
 
@@ -127,14 +194,16 @@ export component MainWindow inherits Window {
     callback open_right_window;
     callback select_file;
     callback crash_drone();
+    callback reactivate_drone();
     callback clone_file();
-    width: 1800px;
+    width: 1920px;
     height: 1080px;
     property <int> id_selected_drone;
     in-out property <string> test;
     in-out property <[Drone]> drones;
     in-out property <[Drone]> clients;
     in-out property <[Drone]> servers;
+    in-out property <[Edge]> edges_dd;
     
     for drone[i] in drones : Drone {
         width: 64px;
@@ -147,17 +216,12 @@ export component MainWindow inherits Window {
 
         // TODO: create connections between drones
         
+    
         open_right_window => {
-            if !drones[i].crashed {
-                id_selected_drone = drone.id;
-            }
+            id_selected_drone = drone.id;
         }
     }
 
-    // [
-    //     {id:20, crashed: false},
-    //     {id:21, crashed: false},
-    // ];
 
     for client[i] in clients : Drone {
         width: 64px;
@@ -172,11 +236,6 @@ export component MainWindow inherits Window {
     //         clicked();
     //     }
     }
-
-    // in property <[Drone]> servers:[
-    //     {id:30, crashed: false},
-    //     {id:31, crashed: false},
-    // ];
 
     for server[i] in servers : Drone {
         width: 64px;
@@ -193,6 +252,7 @@ export component MainWindow inherits Window {
     }
     
 
+
     LeftMenu {
         x: 0;
         y: parent.height/2;
@@ -208,9 +268,32 @@ export component MainWindow inherits Window {
         crash_drone => {
             if !drones[id_selected_drone].crashed{
                 drones[id_selected_drone].crashed = true;
-                crash_drone();
-                clone_file();
+            }
+        }
+
+        reactivate_drone => {
+            if drones[id_selected_drone].crashed{
+                drones[id_selected_drone].crashed = false;
             }
         }
     }
+
+
+    for edge[i] in edges_dd: Edge{
+
+        x1: (1920px/2.15 + (1080px / 3) * cos(2 * 1rad * 3.14159 * edges_dd[i].id1 /10) + (64px / 2) +32px)/1px;
+        y1: (1080px/2.5 +(1080px / 3) * sin(2 * 1rad* 3.14159 * edges_dd[i].id1 / 10) + (64px / 3) +32px)/1px; 
+        x2: (1920px/2.15 + (1080px / 3) * cos(2 * 1rad * 3.14159 * edges_dd[i].id2 /10) + (64px / 2) +32px)/1px;
+        y2: (1080px/2.5 +(1080px / 3) * sin(2 * 1rad* 3.14159 * edges_dd[i].id2 / 10) + (64px / 3) +32px)/1px; 
+
+        x: self.x1 < self.x2 ? self.x1*1px   : self.x2*1px ;
+        y: self.y1 < self.y2 ? self.y1*1px : self.y2*1px;
+        width: self.x1 < self.x2 ? (self.x2 - self.x1)*1px : (self.x1 - self.x2)*1px;
+        height: self.y1 < self.y2 ? (self.y2 - self.y1)*1px : (self.y1 - self.y2)*1px;
+        start_x: (self.x1 > self.x2 && self.y1 > self.y2) ||  (self.x2 > self.x1 && self.y2 > self.y1) ? 0 : self.width/1px;  
+        start_y: 0;
+        end_x: (self.x1 > self.x2 && self.y1 > self.y2) ||  (self.x2 > self.x1 && self.y2 > self.y1) ? self.height/1px : 0;
+        end_y: self.height/1px;
+    }
+    
 }

@@ -7,7 +7,6 @@ edition = "2021"
 
 [dependencies]
 slint = "1.8.0"
-drone = { git = "ssh://git@github.com/Rusteze-AP/drone.git" , branch="main" }
 network-initializer = { git = "ssh://git@github.com/Rusteze-AP/network-initializer.git" , branch="main" }
 rfd = "0.15.1"
 
