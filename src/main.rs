@@ -3,6 +3,10 @@ use rfd::FileDialog;
 use slint::{Model, Window};
 use std::{cell::{RefCell, RefMut}, ffi::OsString, rc::Rc};
 use network_initializer::{NetworkInitializer};
+use crossbeam::channel::{unbounded, Receiver, Sender};
+use wg_internal::packet::Packet;
+use wg_internal::controller::{DroneCommand, NodeEvent};
+use std::thread;
 // use slint::Model;
 
 fn check_edges(edges : &Vec<Edge>, id1: i32, id2: i32) -> bool {
@@ -19,6 +23,17 @@ fn main() -> Result<(), slint::PlatformError> {
     let mut main_window = MainWindow::new()?;
     let weak = main_window.as_weak();
     let weak1 = main_window.as_weak();
+
+    let mut general_receiver: Rc<RefCell<Option<Receiver<NodeEvent>>>> = Rc::new(RefCell::new(None));
+    let mut general_receiver1 = general_receiver.clone();
+
+
+    // thread::spawn(move || {
+    //     loop {
+    //         // thread per arrivo messaggi
+
+    //     }
+    // });
     
 
     main_window.on_select_file(move || {
@@ -34,6 +49,8 @@ fn main() -> Result<(), slint::PlatformError> {
                 assert!(config.is_ok(), "{}", config.err().unwrap());
                 let config = config.unwrap();
                 println!("{config:#?}");
+
+                *general_receiver1.borrow_mut() = Some(config.get_controller_recv());
                 // config.run_simulation();
 
                 
@@ -114,5 +131,8 @@ fn main() -> Result<(), slint::PlatformError> {
 
 
 
-    main_window.run()
+    main_window.run();
+
+    // println!("Set config to :{:?} ", general_receiver);
+    Ok(())
 }

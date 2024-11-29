@@ -592,9 +592,9 @@ checksum = "8f1fe948ff07f4bd06c30984e69f5b4899c516a3ef74f34df92a2df2ab535495"
 
 [[package]]
 name = "bytes"
-version = "1.8.0"
+version = "1.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9ac0150caa2ae65ca5bd83f25c7de183dea78d4d366469f148435e2acfbad0da"
+checksum = "325918d6fe32f23b19878fe4b34794ae41fc19ddbe53b10571a4874d44ffd39b"
 
 [[package]]
 name = "calloop"
@@ -637,9 +637,9 @@ dependencies = [
 
 [[package]]
 name = "cc"
-version = "1.2.1"
+version = "1.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fd9de9f2205d5ef3fd67e685b0df337994ddd4495e2a28d185500d0e1edfea47"
+checksum = "f34d93e62b03caf570cccc334cbc6c2fceca82f39211051345108adcba3eebdc"
 dependencies = [
  "jobserver",
  "libc",
@@ -705,6 +705,17 @@ dependencies = [
  "glob",
  "libc",
  "libloading",
+]
+
+[[package]]
+name = "client"
+version = "0.1.0"
+source = "git+ssh://git@github.com/Rusteze-AP/client-server-testing.git?branch=main#500f7fe9ab0c67335b912dd05a6f03df852f011a"
+dependencies = [
+ "crossbeam",
+ "serde",
+ "serde_json",
+ "wg_internal",
 ]
 
 [[package]]
@@ -1257,12 +1268,12 @@ checksum = "5443807d6dff69373d433ab9ef5378ad8df50ca6298caf15de6e52e24aaf54d5"
 
 [[package]]
 name = "errno"
-version = "0.3.9"
+version = "0.3.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "534c5cf6194dfab3db3242765c03bbe257cf92f22b38f6bc0c58d59108a820ba"
+checksum = "33d852cb9b869c2a9b3df2f71a3074817f01e1844f839a144f5fcef059a4eb5d"
 dependencies = [
  "libc",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -2608,11 +2619,13 @@ dependencies = [
 [[package]]
 name = "network-initializer"
 version = "0.1.0"
-source = "git+ssh://git@github.com/Rusteze-AP/network-initializer.git?branch=main#e85df7537ffb4a1b220aea833f3977c16747975f"
+source = "git+ssh://git@github.com/Rusteze-AP/network-initializer.git?branch=main#9ff7af84e44c4f072768c22d29a4f115721f3c09"
 dependencies = [
+ "client",
  "crossbeam",
  "rusteze_drone",
  "serde",
+ "server",
  "thiserror 2.0.3",
  "toml",
  "wg_internal",
@@ -3354,9 +3367,10 @@ dependencies = [
 [[package]]
 name = "rusteze_drone"
 version = "0.1.0"
-source = "git+ssh://git@github.com/Rusteze-AP/drone.git?branch=add_simController_commands#b21a2dde0eec456aadc82f9a20ccc23bbafb8ef8"
+source = "git+ssh://git@github.com/Rusteze-AP/drone.git?branch=main#b9761b54354278488a91bf6c5885f3229dd9cff8"
 dependencies = [
  "crossbeam",
+ "rand",
  "wg_internal",
 ]
 
@@ -3500,6 +3514,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "server"
+version = "0.1.0"
+source = "git+ssh://git@github.com/Rusteze-AP/client-server-testing.git?branch=main#500f7fe9ab0c67335b912dd05a6f03df852f011a"
+dependencies = [
+ "crossbeam",
+ "wg_internal",
+]
+
+[[package]]
 name = "sha1"
 version = "0.10.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3630,10 +3653,12 @@ dependencies = [
 name = "slint-rust-template"
 version = "0.1.0"
 dependencies = [
+ "crossbeam",
  "network-initializer",
  "rfd",
  "slint",
  "slint-build",
+ "wg_internal",
 ]
 
 [[package]]
@@ -4011,9 +4036,9 @@ dependencies = [
 
 [[package]]
 name = "tracing"
-version = "0.1.40"
+version = "0.1.41"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c3523ab5a71916ccf420eebdf5521fcef02141234bbc0b8a49f2fdc4544364ef"
+checksum = "784e0ac535deb450455cbfa28a6f0df145ea1bb7ae51b821cf5e7927fdcfbdd0"
 dependencies = [
  "log",
  "pin-project-lite",
@@ -4449,7 +4474,7 @@ checksum = "53a85b86a771b1c87058196170769dd264f66c0782acf1ae6cc51bfd64b39082"
 [[package]]
 name = "wg_config"
 version = "0.1.0"
-source = "git+https://github.com/Rusteze-AP/RS_WGL_2024?branch=sim_controller_changes#fc8212f899ef407c40f75865ec1c106d3f0431e7"
+source = "git+https://github.com/Rusteze-AP/RS_WGL_2024?branch=add-nackType#56edf1f08001d4f8c5decc27d5aa4a2a5c14d460"
 dependencies = [
  "wg_network",
 ]
@@ -4457,7 +4482,7 @@ dependencies = [
 [[package]]
 name = "wg_controller"
 version = "0.1.0"
-source = "git+https://github.com/Rusteze-AP/RS_WGL_2024?branch=sim_controller_changes#fc8212f899ef407c40f75865ec1c106d3f0431e7"
+source = "git+https://github.com/Rusteze-AP/RS_WGL_2024?branch=add-nackType#56edf1f08001d4f8c5decc27d5aa4a2a5c14d460"
 dependencies = [
  "crossbeam-channel",
  "wg_network",
@@ -4467,7 +4492,7 @@ dependencies = [
 [[package]]
 name = "wg_drone"
 version = "0.1.0"
-source = "git+https://github.com/Rusteze-AP/RS_WGL_2024?branch=sim_controller_changes#fc8212f899ef407c40f75865ec1c106d3f0431e7"
+source = "git+https://github.com/Rusteze-AP/RS_WGL_2024?branch=add-nackType#56edf1f08001d4f8c5decc27d5aa4a2a5c14d460"
 dependencies = [
  "crossbeam-channel",
  "wg_controller",
@@ -4478,7 +4503,7 @@ dependencies = [
 [[package]]
 name = "wg_internal"
 version = "0.1.0"
-source = "git+https://github.com/Rusteze-AP/RS_WGL_2024?branch=sim_controller_changes#fc8212f899ef407c40f75865ec1c106d3f0431e7"
+source = "git+https://github.com/Rusteze-AP/RS_WGL_2024?branch=add-nackType#56edf1f08001d4f8c5decc27d5aa4a2a5c14d460"
 dependencies = [
  "wg_config",
  "wg_controller",
@@ -4490,12 +4515,12 @@ dependencies = [
 [[package]]
 name = "wg_network"
 version = "0.1.0"
-source = "git+https://github.com/Rusteze-AP/RS_WGL_2024?branch=sim_controller_changes#fc8212f899ef407c40f75865ec1c106d3f0431e7"
+source = "git+https://github.com/Rusteze-AP/RS_WGL_2024?branch=add-nackType#56edf1f08001d4f8c5decc27d5aa4a2a5c14d460"
 
 [[package]]
 name = "wg_packet"
 version = "0.1.0"
-source = "git+https://github.com/Rusteze-AP/RS_WGL_2024?branch=sim_controller_changes#fc8212f899ef407c40f75865ec1c106d3f0431e7"
+source = "git+https://github.com/Rusteze-AP/RS_WGL_2024?branch=add-nackType#56edf1f08001d4f8c5decc27d5aa4a2a5c14d460"
 dependencies = [
  "wg_network",
 ]
