@@ -1,6 +1,6 @@
 slint::include_modules!();
 use rfd::FileDialog;
-use slint::Window;
+use slint::{Model, Window};
 use std::{cell::{RefCell, RefMut}, ffi::OsString, rc::Rc};
 use network_initializer::{NetworkInitializer};
 // use slint::Model;
@@ -18,6 +18,7 @@ fn main() -> Result<(), slint::PlatformError> {
 
     let mut main_window = MainWindow::new()?;
     let weak = main_window.as_weak();
+    let weak1 = main_window.as_weak();
     
 
     main_window.on_select_file(move || {
@@ -39,23 +40,7 @@ fn main() -> Result<(), slint::PlatformError> {
                 if let Some(window) = weak.upgrade() {
 
                     let from_network_initializer = config.get_nodes();
-                    let mut edges_dd : Vec<Edge> = vec![];
                     let mut edges : Vec<Edge> = vec![];
-
-                    let mut drones : Vec<Drone> = vec![];
-                    for drone in from_network_initializer.0 {
-                        let mut adjent = vec![];
-                        for adj in &drone.connected_drone_ids {
-                            adjent.push(*adj as i32);
-                            if !check_edges(&edges_dd, drone.id as i32, *adj as i32) {
-                                if drone.id<20 && *adj<20 {
-                                    edges_dd.push(Edge{id1:drone.id as i32, id2:*adj as i32});
-                                }
-                            }
-                        }
-                        drones.push(Drone{adjent:slint::ModelRc::new(slint::VecModel::from(adjent)), crashed: false, id:drone.id as i32, pdr:drone.pdr});
-                    }
-                    window.set_drones(slint::ModelRc::new(slint::VecModel::from(drones)));
 
 
                     let mut clients : Vec<Drone> = vec![];
@@ -72,6 +57,19 @@ fn main() -> Result<(), slint::PlatformError> {
                     window.set_clients(slint::ModelRc::new(slint::VecModel::from(clients)));
 
 
+                    let mut drones : Vec<Drone> = vec![];
+                    for drone in from_network_initializer.0 {
+                        let mut adjent = vec![];
+                        for adj in &drone.connected_drone_ids {
+                            adjent.push(*adj as i32);
+                            if !check_edges(&edges, drone.id as i32, *adj as i32) {
+                                edges.push(Edge{id1:drone.id as i32, id2:*adj as i32});
+                            }
+                        }
+                        drones.push(Drone{adjent:slint::ModelRc::new(slint::VecModel::from(adjent)), crashed: false, id:drone.id as i32, pdr:drone.pdr});
+                    }
+                    window.set_drones(slint::ModelRc::new(slint::VecModel::from(drones)));
+
                     let mut servers : Vec<Drone> = vec![];
                     for drone in from_network_initializer.2 {
                         let mut adjent = vec![];
@@ -85,7 +83,7 @@ fn main() -> Result<(), slint::PlatformError> {
                     }
                     window.set_servers(slint::ModelRc::new(slint::VecModel::from(servers)));
 
-                    window.set_edges_dd(slint::ModelRc::new(slint::VecModel::from(edges_dd)));
+                    window.set_edges(slint::ModelRc::new(slint::VecModel::from(edges)));
                 }
         
             }else{
@@ -98,10 +96,21 @@ fn main() -> Result<(), slint::PlatformError> {
 
 
 
-    // main_window.on_clone_file(move || {
-    //     // println!("CLOnE");
-    //     // change_test(rc_refcell_main_window.clone().borrow_mut(), "ciao");
-    // });
+    main_window.on_remove_edges(move || {
+        println!("[] REMOVE EDGES");
+        if let Some(window) = weak1.upgrade() {
+            let mut edges = window.get_edges();
+            let mut edges_new : Vec<Edge> = vec![];
+            for edge in edges.iter(){
+                if edge.id1 == window.get_id_selected_drone() || edge.id2 ==  window.get_id_selected_drone() {
+                    println!("removed {} {}", edge.id1, edge.id2);
+                }else{
+                    edges_new.push(Edge{id1:edge.id1, id2:edge.id2});
+                }
+            }
+            window.set_edges(slint::ModelRc::new(slint::VecModel::from(edges_new)));
+        }
+    });
 
 
 

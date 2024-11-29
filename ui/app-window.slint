@@ -196,14 +196,15 @@ export component MainWindow inherits Window {
     callback crash_drone();
     callback reactivate_drone();
     callback clone_file();
+    callback remove_edges();
     width: 1920px;
     height: 1080px;
-    property <int> id_selected_drone;
+    in-out property <int> id_selected_drone;
     in-out property <string> test;
     in-out property <[Drone]> drones;
     in-out property <[Drone]> clients;
     in-out property <[Drone]> servers;
-    in-out property <[Edge]> edges_dd;
+    in-out property <[Edge]> edges;
     
     for drone[i] in drones : Drone {
         width: 64px;
@@ -268,6 +269,7 @@ export component MainWindow inherits Window {
         crash_drone => {
             if !drones[id_selected_drone].crashed{
                 drones[id_selected_drone].crashed = true;
+                remove_edges();
             }
         }
 
@@ -279,12 +281,25 @@ export component MainWindow inherits Window {
     }
 
 
-    for edge[i] in edges_dd: Edge{
+    for edge[i] in edges: Edge{
 
-        x1: (1920px/2.15 + (1080px / 3) * cos(2 * 1rad * 3.14159 * edges_dd[i].id1 /10) + (64px / 2) +32px)/1px;
-        y1: (1080px/2.5 +(1080px / 3) * sin(2 * 1rad* 3.14159 * edges_dd[i].id1 / 10) + (64px / 3) +32px)/1px; 
-        x2: (1920px/2.15 + (1080px / 3) * cos(2 * 1rad * 3.14159 * edges_dd[i].id2 /10) + (64px / 2) +32px)/1px;
-        y2: (1080px/2.5 +(1080px / 3) * sin(2 * 1rad* 3.14159 * edges_dd[i].id2 / 10) + (64px / 3) +32px)/1px; 
+        x1: edges[i].id1<20 ? (1920px/2.15 + (1080px / 3) * cos(2 * 1rad * 3.14159 * edges[i].id1 /10) + (64px / 2) +32px)/1px : (1920px/5 +32px)/1px;
+        y1: edges[i].id1<20 ?(1080px/2.5 +(1080px / 3) * sin(2 * 1rad* 3.14159 * edges[i].id1 / 10) + (64px / 3) +32px)/1px: (1080px/3 +(edges[i].id1 - 20) *175px +32px)/1px; 
+        x2: edges[i].id2<30 ? (1920px/2.15 + (1080px / 3) * cos(2 * 1rad * 3.14159 * edges[i].id2 /10) + (64px / 2) +32px)/1px : (1920px/5 + 2*1080px / 3 + 275px +32px)/1px;
+        y2: edges[i].id2<30 ?(1080px/2.5 +(1080px / 3) * sin(2 * 1rad* 3.14159 * edges[i].id2 / 10) + (64px / 3) +32px)/1px : (1080px/3 +(edges[i].id2 -30)*175px + 32px)/1px; 
+        
+        // the first will always be a drone because they are the first added to the list  -> IDEA , put clients before, so the connections are kept and there shouldn't be other modifications
+        // OK PER DRONE DRONE
+        // x1: (1920px/2.15 + (1080px / 3) * cos(2 * 1rad * 3.14159 * edges[i].id1 /10) + (64px / 2) +32px)/1px;
+        // y1: (1080px/2.5 +(1080px / 3) * sin(2 * 1rad* 3.14159 * edges[i].id1 / 10) + (64px / 3) +32px)/1px; 
+        // x2: (1920px/2.15 + (1080px / 3) * cos(2 * 1rad * 3.14159 * edges[i].id2 /10) + (64px / 2) +32px)/1px;
+        // y2: (1080px/2.5 +(1080px / 3) * sin(2 * 1rad* 3.14159 * edges[i].id2 / 10) + (64px / 3) +32px)/1px; 
+
+        // x1: (1920px/5 +32px)/1px;
+        // y1: (1080px/3 +(edges[i].id1 - 20)*175px +32px)/1px; 
+        // x2: (1920px/2.15 + (1080px / 3) * cos(2 * 1rad * 3.14159 * edges[i].id2 /10) + (64px / 2) +32px)/1px;
+        // y2: (1080px/2.5 +(1080px / 3) * sin(2 * 1rad* 3.14159 * edges[i].id2 / 10) + (64px / 3) +32px)/1px; 
+
 
         x: self.x1 < self.x2 ? self.x1*1px   : self.x2*1px ;
         y: self.y1 < self.y2 ? self.y1*1px : self.y2*1px;
@@ -292,7 +307,7 @@ export component MainWindow inherits Window {
         height: self.y1 < self.y2 ? (self.y2 - self.y1)*1px : (self.y1 - self.y2)*1px;
         start_x: (self.x1 > self.x2 && self.y1 > self.y2) ||  (self.x2 > self.x1 && self.y2 > self.y1) ? 0 : self.width/1px;  
         start_y: 0;
-        end_x: (self.x1 > self.x2 && self.y1 > self.y2) ||  (self.x2 > self.x1 && self.y2 > self.y1) ? self.height/1px : 0;
+        end_x: (self.x1 > self.x2 && self.y1 > self.y2) ||  (self.x2 > self.x1 && self.y2 > self.y1) ? self.width/1px : 0;
         end_y: self.height/1px;
     }
     
