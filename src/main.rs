@@ -8,6 +8,8 @@ use wg_internal::packet::Packet;
 use wg_internal::controller::{DroneCommand, NodeEvent};
 use std::thread;
 use std::sync::{Arc, Mutex};
+use std::collections::HashMap;
+use wg_internal::network::NodeId;
 // use slint::Model;
 
 fn check_edges(edges : &Vec<Edge>, id1: i32, id2: i32) -> bool {
@@ -37,6 +39,9 @@ fn main() -> Result<(), slint::PlatformError> {
     let mut general_receiver1 = general_receiver.clone();
     let mut general_receiver2 = general_receiver.clone();
 
+    let mut senders: Arc<Mutex<Option<HashMap<NodeId,Sender<DroneCommand>>>>> = Arc::new(Mutex::new(None));
+    let mut senders1 = senders.clone();
+
     let mut network_initializer:Arc<Mutex<Result<NetworkInitializer, ConfigError>>> = Arc::new(Mutex::new(NetworkInitializer::new(None)));
     let mut network_initializer1:Arc<Mutex<Result<NetworkInitializer, ConfigError>>> = network_initializer.clone();
 
@@ -44,26 +49,25 @@ fn main() -> Result<(), slint::PlatformError> {
     // thread for message receiving from drones
     thread::spawn(move || {
         loop {
-                thread::sleep(Duration::from_millis(2000));
-                if let Some(ref mut rec_from_drones) = *general_receiver2.lock().unwrap() {
-                    let message = rec_from_drones.recv(); // Blocks until a message is available
-                    match message{
-                        Ok(NodeEvent::PacketDropped(packet)) => {
-                            println!("PacketDropped {:?}", packet);
-                        },
-                        Ok(NodeEvent::PacketSent(packet)) => {
-                            println!("PacketSent {:?}", packet);
-                        },
-                        Err(e) => {
-                            println!("Error receiving message: {:?}", e);
-                        }
+            thread::sleep(Duration::from_millis(2000));
+            if let Some(ref mut rec_from_drones) = *general_receiver2.lock().unwrap() {
+                let message = rec_from_drones.recv(); // Blocks until a message is available
+                match message{
+                    Ok(NodeEvent::PacketDropped(packet)) => {
+                        println!("PacketDropped {:?}", packet);
+                    },
+                    Ok(NodeEvent::PacketSent(packet)) => {
+                        println!("PacketSent {:?}", packet);
+                    },
+                    Err(e) => {
+                        println!("Error receiving message: {:?}", e);
                     }
-                }else{
-                    println!("No receiver");
                 }
+            }else{
+                println!("No receiver");
+            }
         }
     });
-    
 
     main_window.on_select_file(move || {
         println!("[SIMULATION CONTROLLER] FILE SELECTION");
@@ -79,6 +83,11 @@ fn main() -> Result<(), slint::PlatformError> {
 
                 if let Ok(ref mut c) = *config {
                     *general_receiver1.lock().unwrap() = Some(c.get_controller_recv());
+                    println!("Rec directly from config {:?}", c.get_controller_recv());
+                    *senders.lock().unwrap() = Some(c.get_controller_senders());
+                    println!("Senders directly from config {:?}", c.get_controller_senders());
+                    println!("Sender in loading {:?}", senders.lock().unwrap());
+
                     let from_network_initializer = c.get_nodes();
                     run_config_simulation(network_initializer.clone());
 
@@ -146,8 +155,42 @@ fn main() -> Result<(), slint::PlatformError> {
 
 
     main_window.on_remove_edges(move || {
-        println!("[] REMOVE EDGES");
+        
+
+
+
+
+
+        
         if let Some(window) = weak1.upgrade() {
+            println!("[SIMULATION CONTROLLER] SEND CRASH");
+
+
+            let id = window.get_id_selected_drone();
+            if let Some(ref mut s) = *senders1.lock().unwrap(){
+                println!("Senders map {:?}",s);
+                if let Some(sender) = s.get(&(id as u8)){
+                    let res = sender.send(DroneCommand::Crash);
+                    match res {
+                        Ok(_) => {
+                            println!("Crash command sent to drone {}", id);
+                        },
+                        Err(e) => {
+                            println!("Error sending crash command to drone {}: {:?}", id, e);
+                        }
+                    }
+                }else {
+                    println!("No sender for drone {}", id);
+                }
+            }else{
+                println!("No senders map loaded");
+            }
+
+
+
+
+
+            println!("[SIMULATION CONTROLLER] REMOVE EDGES");
             let mut edges = window.get_edges();
             let mut edges_new : Vec<Edge> = vec![];
             for edge in edges.iter(){
