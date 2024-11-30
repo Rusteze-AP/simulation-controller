@@ -7,8 +7,11 @@ edition = "2021"
 
 [dependencies]
 slint = "1.8.0"
-network-initializer = { git = "ssh://git@github.com/Rusteze-AP/network-initializer.git" , branch="main" }
+network-initializer = { path = "../network-initializer" }
 wg_internal = { git = "https://github.com/Rusteze-AP/RS_WGL_2024", branch = "add-nackType" }
+rusteze_drone = { path = "../drone/" }
+client = { path = "../client-server-testing/src/dependencies/client" }
+server = { path = "../client-server-testing/src/dependencies/server" }
 rfd = "0.15.1"
 crossbeam = "0.8.4"
 

@@ -1,12 +1,13 @@
 slint::include_modules!();
 use rfd::FileDialog;
 use slint::{Model, Window};
-use std::{cell::{RefCell, RefMut}, ffi::OsString, rc::Rc};
-use network_initializer::{NetworkInitializer};
-use crossbeam::channel::{unbounded, Receiver, Sender};
+use std::{cell::{RefCell, RefMut}, ffi::OsString, rc::Rc, time::Duration};
+use network_initializer::{errors::ConfigError, NetworkInitializer};
+use crossbeam::channel::{unbounded, Receiver, Sender, select};
 use wg_internal::packet::Packet;
 use wg_internal::controller::{DroneCommand, NodeEvent};
 use std::thread;
+use std::sync::{Arc, Mutex};
 // use slint::Model;
 
 fn check_edges(edges : &Vec<Edge>, id1: i32, id2: i32) -> bool {
@@ -18,90 +19,121 @@ fn check_edges(edges : &Vec<Edge>, id1: i32, id2: i32) -> bool {
     return false;
 }
 
+fn run_config_simulation(config: Arc<Mutex<Result<NetworkInitializer, ConfigError>>>) {
+    thread::spawn(move || {
+        if let Ok(ref mut c) = *config.lock().unwrap(){
+            c.run_simulation();
+        }
+    });
+}
+
 fn main() -> Result<(), slint::PlatformError> {
 
     let mut main_window = MainWindow::new()?;
     let weak = main_window.as_weak();
     let weak1 = main_window.as_weak();
 
-    let mut general_receiver: Rc<RefCell<Option<Receiver<NodeEvent>>>> = Rc::new(RefCell::new(None));
+    let mut general_receiver: Arc<Mutex<Option<Receiver<NodeEvent>>>> = Arc::new(Mutex::new(None));
     let mut general_receiver1 = general_receiver.clone();
+    let mut general_receiver2 = general_receiver.clone();
+
+    let mut network_initializer:Arc<Mutex<Result<NetworkInitializer, ConfigError>>> = Arc::new(Mutex::new(NetworkInitializer::new(None)));
+    let mut network_initializer1:Arc<Mutex<Result<NetworkInitializer, ConfigError>>> = network_initializer.clone();
 
 
-    // thread::spawn(move || {
-    //     loop {
-    //         // thread per arrivo messaggi
-
-    //     }
-    // });
+    // thread for message receiving from drones
+    thread::spawn(move || {
+        loop {
+                thread::sleep(Duration::from_millis(2000));
+                if let Some(ref mut rec_from_drones) = *general_receiver2.lock().unwrap() {
+                    let message = rec_from_drones.recv(); // Blocks until a message is available
+                    match message{
+                        Ok(NodeEvent::PacketDropped(packet)) => {
+                            println!("PacketDropped {:?}", packet);
+                        },
+                        Ok(NodeEvent::PacketSent(packet)) => {
+                            println!("PacketSent {:?}", packet);
+                        },
+                        Err(e) => {
+                            println!("Error receiving message: {:?}", e);
+                        }
+                    }
+                }else{
+                    println!("No receiver");
+                }
+        }
+    });
     
 
     main_window.on_select_file(move || {
-        println!("[] FILE SELECTION");
+        println!("[SIMULATION CONTROLLER] FILE SELECTION");
         let file = FileDialog::new().pick_file();
         if let Some(mut path)= file {
             let path_string = <OsString as Clone>::clone(&path.as_mut_os_string()).into_string();
             if let Ok(path_string) = path_string {
                 println!("Selected file: {}", path_string);
 
-                let mut network = NetworkInitializer::new(Some(path_string.as_str())); // da cambiare con set_path
-                let config = NetworkInitializer::new(Some(&path_string));
-                assert!(config.is_ok(), "{}", config.err().unwrap());
-                let config = config.unwrap();
-                println!("{config:#?}");
+                *network_initializer1.lock().unwrap() = NetworkInitializer::new(Some(path_string.as_str()));
+                let mut config = network_initializer1.lock().unwrap();
+                
 
-                *general_receiver1.borrow_mut() = Some(config.get_controller_recv());
-                // config.run_simulation();
+                if let Ok(ref mut c) = *config {
+                    *general_receiver1.lock().unwrap() = Some(c.get_controller_recv());
+                    let from_network_initializer = c.get_nodes();
+                    run_config_simulation(network_initializer.clone());
 
                 
-                if let Some(window) = weak.upgrade() {
-
-                    let from_network_initializer = config.get_nodes();
-                    let mut edges : Vec<Edge> = vec![];
+                    if let Some(window) = weak.upgrade() {
+                        let mut edges : Vec<Edge> = vec![];
 
 
-                    let mut clients : Vec<Drone> = vec![];
-                    for drone in from_network_initializer.1 {
-                        let mut adjent = vec![];
-                        for adj in &drone.connected_drone_ids {
-                            adjent.push(*adj as i32);
-                            if !check_edges(&edges, drone.id as i32, *adj as i32) {
-                                edges.push(Edge{id1:drone.id as i32, id2:*adj as i32});
+                        let mut clients : Vec<Drone> = vec![];
+                        for drone in from_network_initializer.1 {
+                            let mut adjent = vec![];
+                            for adj in &drone.connected_drone_ids {
+                                adjent.push(*adj as i32);
+                                if !check_edges(&edges, drone.id as i32, *adj as i32) {
+                                    edges.push(Edge{id1:drone.id as i32, id2:*adj as i32});
+                                }
                             }
+                            clients.push(Drone{adjent:slint::ModelRc::new(slint::VecModel::from(adjent)), crashed: false, id:drone.id as i32, pdr:0.0});
                         }
-                        clients.push(Drone{adjent:slint::ModelRc::new(slint::VecModel::from(adjent)), crashed: false, id:drone.id as i32, pdr:0.0});
-                    }
-                    window.set_clients(slint::ModelRc::new(slint::VecModel::from(clients)));
+                        window.set_clients(slint::ModelRc::new(slint::VecModel::from(clients)));
 
 
-                    let mut drones : Vec<Drone> = vec![];
-                    for drone in from_network_initializer.0 {
-                        let mut adjent = vec![];
-                        for adj in &drone.connected_drone_ids {
-                            adjent.push(*adj as i32);
-                            if !check_edges(&edges, drone.id as i32, *adj as i32) {
-                                edges.push(Edge{id1:drone.id as i32, id2:*adj as i32});
+                        let mut drones : Vec<Drone> = vec![];
+                        for drone in from_network_initializer.0 {
+                            let mut adjent = vec![];
+                            for adj in &drone.connected_drone_ids {
+                                adjent.push(*adj as i32);
+                                if !check_edges(&edges, drone.id as i32, *adj as i32) {
+                                    edges.push(Edge{id1:drone.id as i32, id2:*adj as i32});
+                                }
                             }
+                            drones.push(Drone{adjent:slint::ModelRc::new(slint::VecModel::from(adjent)), crashed: false, id:drone.id as i32, pdr:drone.pdr});
                         }
-                        drones.push(Drone{adjent:slint::ModelRc::new(slint::VecModel::from(adjent)), crashed: false, id:drone.id as i32, pdr:drone.pdr});
-                    }
-                    window.set_drones(slint::ModelRc::new(slint::VecModel::from(drones)));
+                        window.set_drones(slint::ModelRc::new(slint::VecModel::from(drones)));
 
-                    let mut servers : Vec<Drone> = vec![];
-                    for drone in from_network_initializer.2 {
-                        let mut adjent = vec![];
-                        for adj in &drone.connected_drone_ids {
-                            adjent.push(*adj as i32);
-                            if !check_edges(&edges, drone.id as i32, *adj as i32) {
-                                edges.push(Edge{id1:drone.id as i32, id2:*adj as i32});
+                        let mut servers : Vec<Drone> = vec![];
+                        for drone in from_network_initializer.2 {
+                            let mut adjent = vec![];
+                            for adj in &drone.connected_drone_ids {
+                                adjent.push(*adj as i32);
+                                if !check_edges(&edges, drone.id as i32, *adj as i32) {
+                                    edges.push(Edge{id1:drone.id as i32, id2:*adj as i32});
+                                }
                             }
+                            servers.push(Drone{adjent:slint::ModelRc::new(slint::VecModel::from(adjent)), crashed: false, id:drone.id as i32, pdr:0.0});
                         }
-                        servers.push(Drone{adjent:slint::ModelRc::new(slint::VecModel::from(adjent)), crashed: false, id:drone.id as i32, pdr:0.0});
-                    }
-                    window.set_servers(slint::ModelRc::new(slint::VecModel::from(servers)));
+                        window.set_servers(slint::ModelRc::new(slint::VecModel::from(servers)));
 
-                    window.set_edges(slint::ModelRc::new(slint::VecModel::from(edges)));
+                        window.set_edges(slint::ModelRc::new(slint::VecModel::from(edges)));
+                    }
                 }
+
+                
+                
+                
         
             }else{
                 println!("Error converting path to string");
