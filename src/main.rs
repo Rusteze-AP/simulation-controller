@@ -24,7 +24,9 @@ fn check_edges(edges : &Vec<Edge>, id1: i32, id2: i32) -> bool {
 fn run_config_simulation(config: Arc<Mutex<Result<NetworkInitializer, ConfigError>>>) {
     thread::spawn(move || {
         if let Ok(ref mut c) = *config.lock().unwrap(){
+            println!("{:?}",c);
             c.run_simulation();
+            println!("Simulation done");
         }
     });
 }
@@ -44,6 +46,20 @@ fn main() -> Result<(), slint::PlatformError> {
 
     let mut network_initializer:Arc<Mutex<Result<NetworkInitializer, ConfigError>>> = Arc::new(Mutex::new(NetworkInitializer::new(None)));
     let mut network_initializer1:Arc<Mutex<Result<NetworkInitializer, ConfigError>>> = network_initializer.clone();
+    let mut network_initializer2:Arc<Mutex<Result<NetworkInitializer, ConfigError>>> = network_initializer.clone();
+
+
+    // thread for checking if there is a configuration and run it                
+    thread::spawn(move || {
+        loop {
+            thread::sleep(Duration::from_millis(2000));
+            // let mut n1 = network_initializer2.clone();
+            if let Ok(ref mut c) = *network_initializer2.lock().unwrap(){
+                c.run_simulation();
+            }
+        }
+    });
+
 
 
     // thread for message receiving from drones
@@ -56,10 +72,10 @@ fn main() -> Result<(), slint::PlatformError> {
                 let message = select.select();
                 match message.recv(&rec_from_drones) {
                     Ok(NodeEvent::PacketDropped(packet)) => {
-                        println!("PacketDropped {:?}", packet);
+                        println!("[SIMULATION CONTROLLER] PacketDropped {:?}", packet);
                     },
                     Ok(NodeEvent::PacketSent(packet)) => {
-                        println!("PacketSent {:?}", packet);
+                        println!("[SIMULATION CONTROLLER] PacketSent {:?}", packet);
                     },
                     Err(e) => {
                         println!("Error receiving message: {:?}", e);
@@ -91,8 +107,7 @@ fn main() -> Result<(), slint::PlatformError> {
                     println!("Sender in loading {:?}", senders.lock().unwrap());
 
                     let from_network_initializer = c.get_nodes();
-                    run_config_simulation(network_initializer.clone());
-
+                    // run_config_simulation(network_initializer.clone());
                 
                     if let Some(window) = weak.upgrade() {
                         let mut edges : Vec<Edge> = vec![];
@@ -139,6 +154,23 @@ fn main() -> Result<(), slint::PlatformError> {
                         window.set_servers(slint::ModelRc::new(slint::VecModel::from(servers)));
 
                         window.set_edges(slint::ModelRc::new(slint::VecModel::from(edges)));
+                    }
+
+                    let val = network_initializer.clone();
+                    let h1 =thread::spawn(move || {
+                        if let Ok(ref mut c) = *val.clone().lock().unwrap(){
+                            println!("{:?}",c);
+                            c.run_simulation();
+                            println!("Simulation done");
+                        }
+                    });
+                    match h1.join() {
+                        Ok(_) => {
+                            println!("Simulation done");
+                        },
+                        Err(e) => {
+                            println!("Error running simulation: {:?}", e);
+                        }
                     }
                 }
 
