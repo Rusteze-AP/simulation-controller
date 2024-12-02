@@ -3,7 +3,7 @@ use rfd::FileDialog;
 use slint::{Model, Window};
 use std::{cell::{RefCell, RefMut}, ffi::OsString, rc::Rc, time::Duration};
 use network_initializer::{errors::ConfigError, NetworkInitializer};
-use crossbeam::channel::{unbounded, Receiver, Sender, select};
+use crossbeam::channel::{unbounded, Receiver, Sender, Select};
 use wg_internal::packet::Packet;
 use wg_internal::controller::{DroneCommand, NodeEvent};
 use std::thread;
@@ -51,8 +51,10 @@ fn main() -> Result<(), slint::PlatformError> {
         loop {
             thread::sleep(Duration::from_millis(2000));
             if let Some(ref mut rec_from_drones) = *general_receiver2.lock().unwrap() {
-                let message = rec_from_drones.recv(); // Blocks until a message is available
-                match message{
+                let mut select = Select::new();
+                let oper1 = select.recv(&rec_from_drones); // Blocks until a message is available
+                let message = select.select();
+                match message.recv(&rec_from_drones) {
                     Ok(NodeEvent::PacketDropped(packet)) => {
                         println!("PacketDropped {:?}", packet);
                     },
@@ -155,12 +157,6 @@ fn main() -> Result<(), slint::PlatformError> {
 
 
     main_window.on_remove_edges(move || {
-        
-
-
-
-
-
         
         if let Some(window) = weak1.upgrade() {
             println!("[SIMULATION CONTROLLER] SEND CRASH");
