@@ -10,6 +10,7 @@ use std::thread;
 use std::sync::{Arc, Mutex};
 use std::collections::HashMap;
 use wg_internal::network::NodeId;
+use logger::Logger;
 // use slint::Model;
 
 fn check_edges(edges : &Vec<Edge>, id1: i32, id2: i32) -> bool {
@@ -24,12 +25,16 @@ fn check_edges(edges : &Vec<Edge>, id1: i32, id2: i32) -> bool {
 fn run_config_simulation(config: Arc<Mutex<Result<NetworkInitializer, ConfigError>>>) {
     thread::spawn(move || {
         if let Ok(ref mut c) = *config.lock().unwrap(){
+            println!("{:?}",c);
             c.run_simulation();
+            println!("Simulation done");
         }
     });
 }
 
 fn main() -> Result<(), slint::PlatformError> {
+    let logger = Logger::new(true,"SimulationController".to_string());
+
 
     let mut main_window = MainWindow::new()?;
     let weak = main_window.as_weak();
@@ -44,25 +49,43 @@ fn main() -> Result<(), slint::PlatformError> {
 
     let mut network_initializer:Arc<Mutex<Result<NetworkInitializer, ConfigError>>> = Arc::new(Mutex::new(NetworkInitializer::new(None)));
     let mut network_initializer1:Arc<Mutex<Result<NetworkInitializer, ConfigError>>> = network_initializer.clone();
+    let mut network_initializer2:Arc<Mutex<Result<NetworkInitializer, ConfigError>>> = network_initializer.clone();
+
+
+    // thread for checking if there is a configuration and run it                
+    thread::spawn(move || {
+        loop {
+            thread::sleep(Duration::from_millis(5000));
+
+            println!("[SIM-CONTROLLER] Selecting config");
+            // let mut n1 = network_initializer2.clone();
+            if let Ok(ref mut c) = *network_initializer2.lock().unwrap(){
+                c.run_simulation();
+            }
+        }
+    });
 
 
     // thread for message receiving from drones
     thread::spawn(move || {
         loop {
-            thread::sleep(Duration::from_millis(2000));
+            thread::sleep(Duration::from_millis(5000));
             if let Some(ref mut rec_from_drones) = *general_receiver2.lock().unwrap() {
                 let mut select = Select::new();
                 let oper1 = select.recv(&rec_from_drones); // Blocks until a message is available
                 let message = select.select();
                 match message.recv(&rec_from_drones) {
                     Ok(NodeEvent::PacketDropped(packet)) => {
-                        println!("PacketDropped {:?}", packet);
+                        println!("[SIMULATION CONTROLLER] PacketDropped {:?}", packet);
                     },
                     Ok(NodeEvent::PacketSent(packet)) => {
-                        println!("PacketSent {:?}", packet);
+                        println!("[SIMULATION CONTROLLER] PacketSent {:?}", packet);
                     },
                     Err(e) => {
                         println!("Error receiving message: {:?}", e);
+                    },
+                    _ => {
+                        println!("Unknown message");
                     }
                 }
             }else{
@@ -72,7 +95,7 @@ fn main() -> Result<(), slint::PlatformError> {
     });
 
     main_window.on_select_file(move || {
-        println!("[SIMULATION CONTROLLER] FILE SELECTION");
+        logger.log_info("file selection");
         let file = FileDialog::new().pick_file();
         if let Some(mut path)= file {
             let path_string = <OsString as Clone>::clone(&path.as_mut_os_string()).into_string();
@@ -91,8 +114,6 @@ fn main() -> Result<(), slint::PlatformError> {
                     println!("Sender in loading {:?}", senders.lock().unwrap());
 
                     let from_network_initializer = c.get_nodes();
-                    run_config_simulation(network_initializer.clone());
-
                 
                     if let Some(window) = weak.upgrade() {
                         let mut edges : Vec<Edge> = vec![];
@@ -159,8 +180,6 @@ fn main() -> Result<(), slint::PlatformError> {
     main_window.on_remove_edges(move || {
         
         if let Some(window) = weak1.upgrade() {
-            println!("[SIMULATION CONTROLLER] SEND CRASH");
-
 
             let id = window.get_id_selected_drone();
             if let Some(ref mut s) = *senders1.lock().unwrap(){
