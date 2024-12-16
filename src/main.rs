@@ -5,7 +5,7 @@ use std::{cell::{RefCell, RefMut}, ffi::OsString, rc::Rc, time::Duration};
 use network_initializer::{errors::ConfigError, NetworkInitializer};
 use crossbeam::channel::{unbounded, Receiver, Sender, Select};
 use wg_internal::packet::Packet;
-use wg_internal::controller::{DroneCommand, NodeEvent};
+use wg_internal::controller::{DroneCommand, DroneEvent};
 use std::thread;
 use std::sync::{Arc, Mutex};
 use std::collections::HashMap;
@@ -22,25 +22,25 @@ fn check_edges(edges : &Vec<Edge>, id1: i32, id2: i32) -> bool {
     return false;
 }
 
-fn run_config_simulation(config: Arc<Mutex<Result<NetworkInitializer, ConfigError>>>) {
-    thread::spawn(move || {
-        if let Ok(ref mut c) = *config.lock().unwrap(){
-            println!("{:?}",c);
-            c.run_simulation();
-            println!("Simulation done");
-        }
-    });
-}
+// fn run_config_simulation(config: Arc<Mutex<Result<NetworkInitializer, ConfigError>>>) {
+//     thread::spawn(move || {
+//         if let Ok(ref mut c) = *config.lock().unwrap(){
+//             println!("{:?}",c);
+//             c.run_simulation();
+//             println!("Simulation done");
+//         }
+//     });
+// }
 
 fn main() -> Result<(), slint::PlatformError> {
-    let logger = Logger::new(true,"SimulationController".to_string());
+    let logger = Logger::new(0, true,"SimulationController".to_string());
 
 
     let mut main_window = MainWindow::new()?;
     let weak = main_window.as_weak();
     let weak1 = main_window.as_weak();
 
-    let mut general_receiver: Arc<Mutex<Option<Receiver<NodeEvent>>>> = Arc::new(Mutex::new(None));
+    let mut general_receiver: Arc<Mutex<Option<Receiver<DroneEvent>>>> = Arc::new(Mutex::new(None));
     let mut general_receiver1 = general_receiver.clone();
     let mut general_receiver2 = general_receiver.clone();
 
@@ -75,10 +75,10 @@ fn main() -> Result<(), slint::PlatformError> {
                 let oper1 = select.recv(&rec_from_drones); // Blocks until a message is available
                 let message = select.select();
                 match message.recv(&rec_from_drones) {
-                    Ok(NodeEvent::PacketDropped(packet)) => {
+                    Ok(DroneEvent::PacketDropped(packet)) => {
                         println!("[SIMULATION CONTROLLER] PacketDropped {:?}", packet);
                     },
-                    Ok(NodeEvent::PacketSent(packet)) => {
+                    Ok(DroneEvent::PacketSent(packet)) => {
                         println!("[SIMULATION CONTROLLER] PacketSent {:?}", packet);
                     },
                     Err(e) => {
@@ -130,7 +130,7 @@ fn main() -> Result<(), slint::PlatformError> {
                             }
                             clients.push(Drone{adjent:slint::ModelRc::new(slint::VecModel::from(adjent)), crashed: false, id:drone.id as i32, pdr:0.0});
                         }
-                        window.set_clients(slint::ModelRc::new(slint::VecModel::from(clients)));
+                        
 
 
                         let mut drones : Vec<Drone> = vec![];
@@ -144,7 +144,7 @@ fn main() -> Result<(), slint::PlatformError> {
                             }
                             drones.push(Drone{adjent:slint::ModelRc::new(slint::VecModel::from(adjent)), crashed: false, id:drone.id as i32, pdr:drone.pdr});
                         }
-                        window.set_drones(slint::ModelRc::new(slint::VecModel::from(drones)));
+                        
 
                         let mut servers : Vec<Drone> = vec![];
                         for drone in from_network_initializer.2 {
@@ -157,15 +157,16 @@ fn main() -> Result<(), slint::PlatformError> {
                             }
                             servers.push(Drone{adjent:slint::ModelRc::new(slint::VecModel::from(adjent)), crashed: false, id:drone.id as i32, pdr:0.0});
                         }
-                        window.set_servers(slint::ModelRc::new(slint::VecModel::from(servers)));
+                        
 
                         window.set_edges(slint::ModelRc::new(slint::VecModel::from(edges)));
+                        
+                        window.set_clients(slint::ModelRc::new(slint::VecModel::from(clients)));
+                        window.set_drones(slint::ModelRc::new(slint::VecModel::from(drones)));
+                        window.set_servers(slint::ModelRc::new(slint::VecModel::from(servers)));
                     }
                 }
 
-                
-                
-                
         
             }else{
                 println!("Error converting path to string");
