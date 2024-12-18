@@ -12,6 +12,12 @@ struct Edge{
     id2: int,
 }
 
+struct Message{
+    id1: int,
+    id2: int,
+    // si potrebbe mettere un tipo e dare colori diversi ?
+}
+
 component Drone inherits Rectangle{
     callback open_right_window;
     in property <string> label_id;
@@ -59,6 +65,31 @@ component Edge inherits Path {
         x: end_x;
         y: end_y;
     }
+}
+
+component Message inherits Rectangle{
+    callback move_message();
+    // callback open_right_window;
+    // in property <string> label_id;
+    // in-out property <float> start_x;
+    // in-out property <float> start_y;
+    in-out property <float> end_x;
+    in-out property <float> end_y;
+    in-out property <float> current_x;
+    in-out property <float> current_y;
+    in-out property <float> step_x;
+    in-out property <float> step_y;
+    in-out property <int> counter;
+
+
+    height: 12px;
+    width: 12px;
+    background: #d5d239;
+    border-radius: self.width/2;
+    x: current_x*1px;
+    y: current_y*1px;
+    counter: 4;
+    animate background { duration: 800ms; } //-> MAYBE LATER
 }
 
 
@@ -168,6 +199,7 @@ export component MainWindow inherits Window {
     callback reactivate_drone();
     callback clone_file();
     callback remove_edges();
+    callback remove_message();
 
     in-out property <int> id_selected_drone;
     in-out property <string> test;
@@ -175,6 +207,8 @@ export component MainWindow inherits Window {
     in-out property <[Drone]> clients;
     in-out property <[Drone]> servers;
     in-out property <[Edge]> edges;
+    in-out property<[Message]> messages;
+    
 
     width: 1920px;
     height: 1080px;
@@ -269,7 +303,38 @@ export component MainWindow inherits Window {
         }
     }
 
+    
 
+    for message[i] in messages : Message {
+        current_x: messages[i].id1<20 ? (1920px/2.15 + (1080px / 3) * cos(2 * 1rad * 3.14159 * messages[i].id1 /10) + (64px / 2) +32px)/1px : (1920px/5 +32px)/1px;
+        current_y: messages[i].id1<20 ?(1080px/2.5 +(1080px / 3) * sin(2 * 1rad* 3.14159 * messages[i].id1 / 10) + (64px / 3) +32px)/1px: (1080px/3 +(messages[i].id1 - 20) *175px +32px)/1px; 
+        end_x: messages[i].id2<30 ? (1920px/2.15 + (1080px / 3) * cos(2 * 1rad * 3.14159 * messages[i].id2 /10) + (64px / 2) +32px)/1px : (1920px/5 + 2*1080px / 3 + 275px +32px)/1px;
+        end_y: messages[i].id2<30 ?(1080px/2.5 +(1080px / 3) * sin(2 * 1rad* 3.14159 * messages[i].id2 / 10) + (64px / 3) +32px)/1px : (1080px/3 +(messages[i].id2 -30)*175px + 32px)/1px; 
+        step_x: (self.end_x - self.current_x) / self.counter;
+        step_y: (self.end_y - self.current_y) / self.counter;
+
+        // move_message => {
+        //     self.current_x = self.end_x;
+        //     self.current_y = self.end_y;
+        // }
+
+        move_message => {
+            self.current_x += self.step_x;
+            self.current_y += self.step_y;
+        }
+
+        Timer {
+            interval: 2000ms;
+            running: parent.counter == 0? false : true;
+            triggered => {
+                parent.counter = parent.counter - 1;
+                parent.move_message();
+                // remove_message(); -> fa crashare, probabilmente per accesso concorrente alla lista
+            }
+        }
+        // vanno rimossi dalla lista poi
+        //vanno anche fatti muovere prima
+    }
     
     
 }

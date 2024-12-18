@@ -11,7 +11,7 @@ use std::sync::{Arc, Mutex};
 use std::collections::HashMap;
 use wg_internal::network::NodeId;
 use logger::Logger;
-// use slint::Model;
+use slint::{ModelRc, VecModel};
 
 fn check_edges(edges : &Vec<Edge>, id1: i32, id2: i32) -> bool {
     for edge in edges {
@@ -39,6 +39,8 @@ fn main() -> Result<(), slint::PlatformError> {
     let mut main_window = MainWindow::new()?;
     let weak = main_window.as_weak();
     let weak1 = main_window.as_weak();
+    let weak2 = main_window.as_weak();
+    let weak3 = main_window.as_weak();
 
     let mut general_receiver: Arc<Mutex<Option<Receiver<DroneEvent>>>> = Arc::new(Mutex::new(None));
     let mut general_receiver1 = general_receiver.clone();
@@ -68,28 +70,42 @@ fn main() -> Result<(), slint::PlatformError> {
 
     // thread for message receiving from drones
     thread::spawn(move || {
-        loop {
-            thread::sleep(Duration::from_millis(5000));
-            if let Some(ref mut rec_from_drones) = *general_receiver2.lock().unwrap() {
-                let mut select = Select::new();
-                let oper1 = select.recv(&rec_from_drones); // Blocks until a message is available
-                let message = select.select();
-                match message.recv(&rec_from_drones) {
-                    Ok(DroneEvent::PacketDropped(packet)) => {
-                        println!("[SIMULATION CONTROLLER] PacketDropped {:?}", packet);
-                    },
-                    Ok(DroneEvent::PacketSent(packet)) => {
-                        println!("[SIMULATION CONTROLLER] PacketSent {:?}", packet);
-                    },
-                    Err(e) => {
-                        println!("Error receiving message: {:?}", e);
-                    },
-                    _ => {
-                        println!("Unknown message");
+        // let mut n1 = network_initializer2.clone();
+        if let Some(window) = weak2.upgrade() {
+
+            loop {
+                thread::sleep(Duration::from_millis(5000));
+                if let Some(ref mut rec_from_drones) = *general_receiver2.lock().unwrap() {
+                    let mut select = Select::new();
+                    let oper1 = select.recv(&rec_from_drones); // Blocks until a message is available
+                    let message = select.select();
+                    match message.recv(&rec_from_drones) {
+                        Ok(DroneEvent::PacketDropped(packet)) => {
+                            println!("[SIMULATION CONTROLLER] PacketDropped {:?}", packet);
+                            // let mut messages : ModelRc<Message> = window.get_messages();
+                            // if let Some(vec_model) = messages.as_any().downcast_ref::<VecModel<Message>>() {
+                            //     vec_model.push(Message{id1: packet.routing_header.hops[packet.routing_header.hop_index-1] as i32 , id2: packet.routing_header.hops[packet.routing_header.hop_index] as i32});
+                            // }
+                            // window.set_messages(messages);
+                        },
+                        Ok(DroneEvent::PacketSent(packet)) => {
+                            println!("[SIMULATION CONTROLLER] PacketSent {:?}", packet);
+                            // let mut messages : ModelRc<Message> = window.get_messages();
+                            // if let Some(vec_model) = messages.as_any().downcast_ref::<VecModel<Message>>() {
+                            //     vec_model.push(Message{id1: packet.routing_header.hops[packet.routing_header.hop_index-1] as i32 , id2: packet.routing_header.hops[packet.routing_header.hop_index] as i32});
+                            // }
+                            // window.set_messages(messages);
+                        },
+                        Err(e) => {
+                            println!("Error receiving message: {:?}", e);
+                        },
+                        _ => {
+                            println!("Unknown message");
+                        }
                     }
+                }else{
+                    println!("No receiver");
                 }
-            }else{
-                println!("No receiver");
             }
         }
     });
@@ -164,6 +180,7 @@ fn main() -> Result<(), slint::PlatformError> {
                         window.set_clients(slint::ModelRc::new(slint::VecModel::from(clients)));
                         window.set_drones(slint::ModelRc::new(slint::VecModel::from(drones)));
                         window.set_servers(slint::ModelRc::new(slint::VecModel::from(servers)));
+                        window.set_messages(slint::ModelRc::new(slint::VecModel::from(vec![Message{id1:0, id2:2}, Message{id1:20, id2:1}])));
                     }
                 }
 
@@ -202,10 +219,6 @@ fn main() -> Result<(), slint::PlatformError> {
                 println!("No senders map loaded");
             }
 
-
-
-
-
             println!("[SIMULATION CONTROLLER] REMOVE EDGES");
             let mut edges = window.get_edges();
             let mut edges_new : Vec<Edge> = vec![];
@@ -221,9 +234,23 @@ fn main() -> Result<(), slint::PlatformError> {
     });
 
 
+    main_window.on_remove_message(move || {
+        println!("Enters here");
+        if let Some(window) = weak3.upgrade() {
+            let messages = window.get_messages();
+            if let Some(vec_model) = messages.as_any().downcast_ref::<VecModel<Message>>() {
+                vec_model.remove(0);
+            }
+            println!("Removed message + {:?}", messages);
+            window.set_messages(messages);
+        }
+    });
+
 
     main_window.run();
 
     // println!("Set config to :{:?} ", general_receiver);
     Ok(())
 }
+
+// TODO: handling crash 
