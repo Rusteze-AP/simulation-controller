@@ -54,6 +54,7 @@ fn main() -> Result<(), slint::PlatformError> {
         Arc::new(Mutex::new(None));
     let mut senders1 = senders.clone();
     let mut senders2 = senders.clone();
+    let mut senders3 = senders.clone();
 
     let mut network_initializer: Arc<Mutex<Result<NetworkInitializer, ConfigError>>> =
         Arc::new(Mutex::new(NetworkInitializer::new(None)));
@@ -386,6 +387,47 @@ fn main() -> Result<(), slint::PlatformError> {
                 }
             }
             window.set_edges(slint::ModelRc::new(slint::VecModel::from(edges_new)));
+
+            // COMMUNICATE REMOTION TO DRONES to id_1
+            if let Some(ref mut s) = *senders3.lock().unwrap() {
+                println!("Senders map {:?}", s);
+                if let Some(sender) = s.get(&(id_1 as u8)) {
+                    let res = sender.send(DroneCommand::RemoveSender(id_2 as u8));
+                    match res {
+                        Ok(_) => {
+                            println!("RemoveSender command sent to drone {} to remove {}", id_1, id_2);
+                        }
+                        Err(e) => {
+                            println!("Error sending RemoveSender command to drone {}: {:?}", id_1, e);
+                        }
+                    }
+                } else {
+                    println!("No sender for drone {}", id_1);
+                }
+            } else {
+                println!("No senders map loaded");
+            }
+
+            // COMMUNICATE REMOTION TO DRONES to id_2
+            if let Some(ref mut s) = *senders3.lock().unwrap() {
+                println!("Senders map {:?}", s);
+                if let Some(sender) = s.get(&(id_2 as u8)) {
+                    let res = sender.send(DroneCommand::RemoveSender(id_1 as u8));
+                    match res {
+                        Ok(_) => {
+                            println!("RemoveSender command sent to drone {} to remove {}", id_2, id_1);
+                        }
+                        Err(e) => {
+                            println!("Error sending RemoveSender command to drone {}: {:?}", id_2, e);
+                        }
+                    }
+                } else {
+                    println!("No sender for drone {}", id_2);
+                }
+            } else {
+                println!("No senders map loaded");
+            }
+
 
             // REMOVE ADJACENT
             let mut drones = window.get_drones();
