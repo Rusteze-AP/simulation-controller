@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-slint = "1.8.0"
+slint = "1.9.1"
 rfd = "0.15.1"
 crossbeam = "0.8.4"
 network-initializer = { git = "ssh://git@github.com/Rusteze-AP/network-initializer.git", branch = "main" }

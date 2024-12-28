@@ -104,7 +104,7 @@ component LeftMenu inherits GridLayout {
         Rectangle {
             // width: width;
             height: 50px;
-            color: #a0b1e4;
+            background: #a0b1e4;
             border-color: black;
             border-width: 0.5px;
             Text {
@@ -121,13 +121,13 @@ component LeftMenu inherits GridLayout {
             text: "Select File";
             width: 200px;
             height: 50px;
-    
+
             clicked => {
                 // Trigger the callback to select a file (defined in Rust)
                 select_file();
             }
         }
-    
+
         // Text displaying the selected file path
         Text {
             text: selected_file;
@@ -142,51 +142,70 @@ component LeftMenu inherits GridLayout {
     }
 }
 
-export component RightMenu inherits GridLayout {
+export component RightMenu inherits Window{
     callback crash_drone();
     callback reactivate_drone();
+    callback remove_edge();
     visible: true;
     width: 300px;
     height: 500px;
     in property <string> label_id;
+    in property <Drone> selected_drone;
+    out property <int> edge_to_remove;
 
-    Row{
-        Rectangle {
-            // width: width;
-            height: 50px;
-            color: #a0b1e4;
-            border-color: black;
-            border-width: 0.5px;
-            Text {
-                text: "Node Control : " + label_id;
-                horizontal-alignment: center;
-                vertical-alignment: center;
-                color: black;
+    GridLayout {
+        Row{
+            Rectangle {
+                // width: width;
+                height: 50px;
+                background: #a0b1e4;
+                border-color: black;
+                border-width: 0.5px;
+                Text {
+                    text: "Node Control : " + selected_drone.id;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                    color: black;
+                }
+            }
+        }
+
+        Row{
+            Button {
+                text: "Crash drone";
+                width: 200px;
+                height: 50px;
+
+                clicked => {
+                    crash_drone();
+                }
+            }
+        }
+
+        Row{
+            Button {
+                text: "Re-activate drone";
+                width: 200px;
+                height: 50px;
+
+                clicked => {
+                    reactivate_drone();
+                }
             }
         }
     }
 
-    Row{
-        Button {
-            text: "Crash drone";
-            width: 200px;
-            height: 50px;
-    
-            clicked => {
-                crash_drone();
-            }
-        }
-    }
+    // TODO: sistemare posizionamento per connessioni (non in base all'id)
+    for i in self.selected_drone.adjent: Button {
+        width: 200px;
+        height: 50px;
+        text: "Remove connection with " + i;
+        x: 0px;
+        y: 150px + i*50px;
 
-    Row{
-        Button {
-            text: "Re-activate drone";
-            width: 200px;
-            height: 50px;
-    
-            clicked => {
-                reactivate_drone();
-            }
+        clicked => {
+            edge_to_remove = i;
+            remove_edge();
         }
     }
 }
@@ -199,16 +218,18 @@ export component MainWindow inherits Window {
     callback reactivate_drone();
     callback clone_file();
     callback remove_edges();
+    callback remove_edge();
     callback remove_message();
 
     in-out property <int> id_selected_drone;
+    in-out property <int> edge_to_remove;
     in-out property <string> test;
     in-out property <[Drone]> drones;
     in-out property <[Drone]> clients;
     in-out property <[Drone]> servers;
     in-out property <[Edge]> edges;
     in-out property<[Message]> messages;
-    
+
 
     width: 1920px;
     height: 1080px;
@@ -217,28 +238,29 @@ export component MainWindow inherits Window {
     for edge[i] in edges: Edge{
 
         x1: edges[i].id1<20 ? (1920px/2.15 + (1080px / 3) * cos(2 * 1rad * 3.14159 * edges[i].id1 /10) + (64px / 2) +32px)/1px : (1920px/5 +32px)/1px;
-        y1: edges[i].id1<20 ?(1080px/2.5 +(1080px / 3) * sin(2 * 1rad* 3.14159 * edges[i].id1 / 10) + (64px / 3) +32px)/1px: (1080px/3 +(edges[i].id1 - 20) *175px +32px)/1px; 
+        y1: edges[i].id1<20 ?(1080px/2.5 +(1080px / 3) * sin(2 * 1rad* 3.14159 * edges[i].id1 / 10) + (64px / 3) +32px)/1px: (1080px/3 +(edges[i].id1 - 20) *175px +32px)/1px;
         x2: edges[i].id2<30 ? (1920px/2.15 + (1080px / 3) * cos(2 * 1rad * 3.14159 * edges[i].id2 /10) + (64px / 2) +32px)/1px : (1920px/5 + 2*1080px / 3 + 275px +32px)/1px;
-        y2: edges[i].id2<30 ?(1080px/2.5 +(1080px / 3) * sin(2 * 1rad* 3.14159 * edges[i].id2 / 10) + (64px / 3) +32px)/1px : (1080px/3 +(edges[i].id2 -30)*175px + 32px)/1px; 
-        
+        y2: edges[i].id2<30 ?(1080px/2.5 +(1080px / 3) * sin(2 * 1rad* 3.14159 * edges[i].id2 / 10) + (64px / 3) +32px)/1px : (1080px/3 +(edges[i].id2 -30)*175px + 32px)/1px;
+
         x: self.x1 < self.x2 ? self.x1*1px   : self.x2*1px ;
         y: self.y1 < self.y2 ? self.y1*1px : self.y2*1px;
         width: self.x1 < self.x2 ? (self.x2 - self.x1)*1px : (self.x1 - self.x2)*1px;
         height: self.y1 < self.y2 ? (self.y2 - self.y1)*1px : (self.y1 - self.y2)*1px;
-        start_x: (self.x1 > self.x2 && self.y1 > self.y2) ||  (self.x2 > self.x1 && self.y2 > self.y1) ? 0 : self.width/1px;  
+        start_x: (self.x1 > self.x2 && self.y1 > self.y2) ||  (self.x2 > self.x1 && self.y2 > self.y1) ? 0 : self.width/1px;
         start_y: 0;
         end_x: (self.x1 > self.x2 && self.y1 > self.y2) ||  (self.x2 > self.x1 && self.y2 > self.y1) ? self.width/1px : 0;
         end_y: self.height/1px;
     }
-    
+
     for drone[i] in drones : Drone {
         width: 64px;
         height: 64px;
         // circular positioning
         x: parent.width/2.15 + (parent.height / 3) * cos(2 * 1rad * 3.14159 * i /10) + (self.width / 2);
-        y: parent.height/2.5 +(parent.height / 3) * sin(2 * 1rad* 3.14159 * i / 10) + (self.height / 3);    
+        y: parent.height/2.5 +(parent.height / 3) * sin(2 * 1rad* 3.14159 * i / 10) + (self.height / 3);
         label_id: "Drone" + drone.id;
         background: drones[i].crashed ? #65839b4e : #3960D5;
+        visible: drones[i].crashed ? false : true;
 
         open_right_window => {
             id_selected_drone = drone.id;
@@ -250,7 +272,7 @@ export component MainWindow inherits Window {
         width: 64px;
         height: 64px;
         x: parent.width/5;
-        y: parent.height/3 +i*175px;  
+        y: parent.height/3 +i*175px;
         label_id: "Client" + client.id;
         background: red;
     //     // propagate the solved status from the model to the tile
@@ -263,8 +285,8 @@ export component MainWindow inherits Window {
     for server[i] in servers : Drone {
         width: 64px;
         height: 64px;
-        x: parent.width/5 + 2*parent.height / 3 + 275px; 
-        y: parent.height/3 +i*175px;  
+        x: parent.width/5 + 2*parent.height / 3 + 275px;
+        y: parent.height/3 +i*175px;
         label_id: "Server" + server.id;
         background: green;
     //     // propagate the solved status from the model to the tile
@@ -273,7 +295,7 @@ export component MainWindow inherits Window {
     //         clicked();
     //     }
     }
-    
+
 
     // TODO: sistemare posizione, colore, ecc.
     LeftMenu {
@@ -284,11 +306,15 @@ export component MainWindow inherits Window {
         }
     }
 
+
+
     // TODO: sistemare posizione, colore, ecc.
     RightMenu {
         x: parent.width - self.width;
         y: parent.height/2;
         label_id: "drone" + id_selected_drone + test;
+        selected_drone: drones[id_selected_drone];
+
         crash_drone => {
             if !drones[id_selected_drone].crashed{
                 drones[id_selected_drone].crashed = true;
@@ -301,22 +327,24 @@ export component MainWindow inherits Window {
                 drones[id_selected_drone].crashed = false;
             }
         }
+
+        remove_edge => {
+            parent.edge_to_remove = self.edge_to_remove;
+            remove_edge();
+        }
+
+
     }
 
-    
+
 
     for message[i] in messages : Message {
         current_x: messages[i].id1<20 ? (1920px/2.15 + (1080px / 3) * cos(2 * 1rad * 3.14159 * messages[i].id1 /10) + (64px / 2) +32px)/1px : (1920px/5 +32px)/1px;
-        current_y: messages[i].id1<20 ?(1080px/2.5 +(1080px / 3) * sin(2 * 1rad* 3.14159 * messages[i].id1 / 10) + (64px / 3) +32px)/1px: (1080px/3 +(messages[i].id1 - 20) *175px +32px)/1px; 
+        current_y: messages[i].id1<20 ?(1080px/2.5 +(1080px / 3) * sin(2 * 1rad* 3.14159 * messages[i].id1 / 10) + (64px / 3) +32px)/1px: (1080px/3 +(messages[i].id1 - 20) *175px +32px)/1px;
         end_x: messages[i].id2<30 ? (1920px/2.15 + (1080px / 3) * cos(2 * 1rad * 3.14159 * messages[i].id2 /10) + (64px / 2) +32px)/1px : (1920px/5 + 2*1080px / 3 + 275px +32px)/1px;
-        end_y: messages[i].id2<30 ?(1080px/2.5 +(1080px / 3) * sin(2 * 1rad* 3.14159 * messages[i].id2 / 10) + (64px / 3) +32px)/1px : (1080px/3 +(messages[i].id2 -30)*175px + 32px)/1px; 
+        end_y: messages[i].id2<30 ?(1080px/2.5 +(1080px / 3) * sin(2 * 1rad* 3.14159 * messages[i].id2 / 10) + (64px / 3) +32px)/1px : (1080px/3 +(messages[i].id2 -30)*175px + 32px)/1px;
         step_x: (self.end_x - self.current_x) / self.counter;
         step_y: (self.end_y - self.current_y) / self.counter;
-
-        // move_message => {
-        //     self.current_x = self.end_x;
-        //     self.current_y = self.end_y;
-        // }
 
         move_message => {
             self.current_x += self.step_x;
@@ -324,7 +352,7 @@ export component MainWindow inherits Window {
         }
 
         Timer {
-            interval: 2000ms;
+            interval: 500ms;
             running: parent.counter == 0? false : true;
             triggered => {
                 parent.counter = parent.counter - 1;
@@ -335,6 +363,6 @@ export component MainWindow inherits Window {
         // vanno rimossi dalla lista poi
         //vanno anche fatti muovere prima
     }
-    
-    
+
+
 }
