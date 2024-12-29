@@ -4,6 +4,7 @@ struct Drone {
     id : int,
     crashed: bool,
     adjent: [int],
+    not_adjacent: [int],
     pdr: float,
 }
 
@@ -146,12 +147,12 @@ export component RightMenu inherits Window{
     callback crash_drone();
     callback reactivate_drone();
     callback remove_edge();
-    visible: true;
-    width: 300px;
-    height: 500px;
+    callback add_edge();
+    width: 400px;
+    height: 1000px;
     in property <string> label_id;
     in property <Drone> selected_drone;
-    out property <int> edge_to_remove;
+    out property <int> edge_selected;
 
     GridLayout {
         Row{
@@ -204,10 +205,23 @@ export component RightMenu inherits Window{
         y: 150px + i*50px;
 
         clicked => {
-            edge_to_remove = i;
+            edge_selected = i;
             remove_edge();
         }
     }
+
+    for d in self.selected_drone.not_adjacent: Button{
+        width: 200px;
+        height: 50px;
+        text: "Add connection with " + d;
+        x: 200px;
+        y: 150px + d*50px;
+        clicked => {
+            edge_selected = d;
+            add_edge();
+        }
+    }
+
 }
 
 
@@ -219,10 +233,11 @@ export component MainWindow inherits Window {
     callback clone_file();
     callback remove_edges();
     callback remove_edge();
+    callback add_edge();
     callback remove_message();
 
     in-out property <int> id_selected_drone;
-    in-out property <int> edge_to_remove;
+    in-out property <int> edge_selected;
     in-out property <string> test;
     in-out property <[Drone]> drones;
     in-out property <[Drone]> clients;
@@ -311,7 +326,7 @@ export component MainWindow inherits Window {
     // TODO: sistemare posizione, colore, ecc.
     RightMenu {
         x: parent.width - self.width;
-        y: parent.height/2;
+        y: parent.height/4;
         label_id: "drone" + id_selected_drone + test;
         selected_drone: drones[id_selected_drone];
 
@@ -329,10 +344,14 @@ export component MainWindow inherits Window {
         }
 
         remove_edge => {
-            parent.edge_to_remove = self.edge_to_remove;
+            parent.edge_selected = self.edge_selected;
             remove_edge();
         }
 
+        add_edge => {
+            parent.edge_selected = self.edge_selected;
+            add_edge();
+        }
 
     }
 
