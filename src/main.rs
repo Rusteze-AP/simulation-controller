@@ -17,6 +17,7 @@ use std::{
 use wg_internal::controller::{DroneCommand, DroneEvent};
 use wg_internal::network::NodeId;
 use wg_internal::packet::Packet;
+use network_initializer::types::channel::Channel;
 
 fn check_edges(edges: &Vec<Edge>, id1: i32, id2: i32) -> bool {
     for edge in edges {
@@ -57,6 +58,7 @@ fn main() -> Result<(), slint::PlatformError> {
     let mut senders2 = senders.clone();
     let mut senders3 = senders.clone();
     let mut senders4 = senders.clone();
+    let mut senders5 = senders.clone();
 
     let mut network_initializer: Arc<Mutex<Result<NetworkInitializer, ConfigError>>> =
         Arc::new(Mutex::new(NetworkInitializer::new(None)));
@@ -66,6 +68,11 @@ fn main() -> Result<(), slint::PlatformError> {
         network_initializer.clone();
     let mut network_initializer3: Arc<Mutex<Result<NetworkInitializer, ConfigError>>> = network_initializer.clone();
     let mut network_initializer4: Arc<Mutex<Result<NetworkInitializer, ConfigError>>> = network_initializer.clone();
+
+    let mut channels: Arc<Mutex<Option<HashMap<NodeId, Channel<Packet>>>>> = Arc::new(Mutex::new(None));
+    let mut channels1 = channels.clone();
+    let mut channels2 = channels.clone();
+    let mut channels3 = channels.clone();
 
     // thread for checking if there is a configuration and run it
     thread::spawn(move || {
@@ -109,11 +116,26 @@ fn main() -> Result<(), slint::PlatformError> {
                         }
                         Ok(DroneEvent::ControllerShortcut(packet)) => {
                             println!("[SIMULATION CONTROLLER] ControllerShortcut {:?}", packet);
+                            // add to message queue
                             // let mut messages : ModelRc<Message> = window.get_messages();
                             // if let Some(vec_model) = messages.as_any().downcast_ref::<VecModel<Message>>() {
                             //     vec_model.push(Message{id1: packet.routing_header.hops[packet.routing_header.hop_index-1] as i32 , id2: packet.routing_header.hops[packet.routing_header.hop_index] as i32});
                             // }
                             // window.set_messages(messages);
+
+                            // send directly to destination -> TO TEST
+                            let destination = packet.routing_header.hops[packet.routing_header.hops.len() - 1];
+                            if let Some(ref mut s) = *channels1.lock().unwrap() {
+                                if let Some(channel) = (*s).get(&destination) {
+                                    channel.sender.send(packet);
+                                } else {
+                                    println!("No sender for drone {}", destination);
+                                }
+
+                            } else {
+                                println!("No senders map loaded");
+                            }
+
                         }
                         Err(e) => {
                             println!("Error receiving message: {:?}", e);
@@ -245,6 +267,8 @@ fn main() -> Result<(), slint::PlatformError> {
                             c.get_controller_senders()
                         );
                         println!("Sender in loading {:?}", senders.lock().unwrap());
+
+                        *channels.lock().unwrap() = Some(c.get_channels());
 
                         let from_network_initializer = c.get_nodes();
 
@@ -398,7 +422,7 @@ fn main() -> Result<(), slint::PlatformError> {
         }
     });
 
-    // TODO: remove channel 
+    // TODO: remove channel
     main_window.on_remove_edge(move || {
         println!("[SIMULATION CONTROLLER ]");
         if let Some(window) = weak3.upgrade() {
@@ -462,13 +486,24 @@ fn main() -> Result<(), slint::PlatformError> {
                 println!("No senders map loaded");
             }
 
-            // let mut config = network_initializer3.lock().unwrap();
-            // if let Ok(ref mut c) = *config {
-            //     let drones_from_ni = c.get_nodes().0;
-            //     for d in drones_from_ni.iter(){
-            //         if d.
-            //     }
+            // remove channel -> TO TEST (dovrei controllare se ha delle connessioni e in caso eliminarle??????)
+            // if let Some(ref mut channel) = *channels2.lock().unwrap() {
 
+            //     if let Some(channel_) = s.get(&(id_1 as u8)) {
+            //         let res = sender.send(DroneCommand::RemoveSender(id_2 as u8));
+            //         match res {
+            //             Ok(_) => {
+            //                 println!("RemoveSender command sent to drone {} to remove {}", id_1, id_2);
+            //             }
+            //             Err(e) => {
+            //                 println!("Error sending RemoveSender command to drone {}: {:?}", id_1, e);
+            //             }
+            //         }
+            //     } else {
+            //         println!("No sender for drone {}", id_1);
+            //     }
+            // } else {
+            //     println!("No senders map loaded");
             // }
 
 
@@ -530,7 +565,7 @@ fn main() -> Result<(), slint::PlatformError> {
         }
     });
 
-    // TODO: add channel 
+    // TODO: add channel
     main_window.on_add_edge(move || {
         println!("[SIMULATION CONTROLLER ] ADD EDGE");
         if let Some(window) = weak4.upgrade() {
@@ -541,7 +576,7 @@ fn main() -> Result<(), slint::PlatformError> {
             let mut edges = window.get_edges();
             if let Some(edge) = edges.as_any().downcast_ref::<VecModel<Edge>>() {
                 if id_1<id_2{
-                    edge.push(Edge{id1: id_1, id2: id_2}); 
+                    edge.push(Edge{id1: id_1, id2: id_2});
                 }else{
                     edge.push(Edge{id1: id_2, id2: id_1});
                 }
@@ -585,13 +620,33 @@ fn main() -> Result<(), slint::PlatformError> {
             }
 
             // TODO: create channels in reality from NI
+            let mut sender_id_1: Option<Sender<Packet>> = None;
+            let mut sender_id_2: Option<Sender<Packet>> = None;
+
+            if let Some(ref mut channel) = *channels2.lock().unwrap() {
+
+                if let Some(ch_1) = (*channel).get(&(id_1 as u8)) {
+                    sender_id_1 = Some(ch_1.sender.clone());
+                } else {
+                    // TODO: channel to create and insert
+                }
+
+                if let Some(ch_2) = channel.get(&(id_2 as u8)) {
+                    sender_id_2 = Some(ch_2.sender.clone());
+                } else {
+                    // TODO: channel to create and insert
+                }
+            } else {
+                println!("No senders map loaded");
+            }
 
 
             // COMMUNICATE ADDITION TO DRONES to id_1
             if let Some(ref mut s) = *senders4.lock().unwrap() {
                 println!("Senders map {:?}", s);
                 if let Some(sender) = s.get(&(id_1 as u8)) {
-                    let res = sender.send(DroneCommand::AddSender(id_2, Sender<Packet>)); // CREATE NEW CHANNEL
+                    if let Some(s_id_2)= sender_id_2{
+                    let res = sender.send(DroneCommand::AddSender(id_2 as u8, s_id_2)); 
                     match res {
                         Ok(_) => {
                             println!("RemoveSender command sent to drone {} to remove {}", id_1, id_2);
@@ -603,6 +658,7 @@ fn main() -> Result<(), slint::PlatformError> {
                 } else {
                     println!("No sender for drone {}", id_1);
                 }
+            }
             } else {
                 println!("No senders map loaded");
             }
@@ -611,7 +667,8 @@ fn main() -> Result<(), slint::PlatformError> {
             if let Some(ref mut s) = *senders4.lock().unwrap() {
                 println!("Senders map {:?}", s);
                 if let Some(sender) = s.get(&(id_2 as u8)) {
-                    let res = sender.send(DroneCommand::AddSender(id_1, Sender<Packet>)); // CREATE NEW CHANNEL
+                    if let Some(s_id_1)= sender_id_1{
+                    let res = sender.send(DroneCommand::AddSender(id_1 as u8, s_id_1)); 
                     match res {
                         Ok(_) => {
                             println!("RemoveSender command sent to drone {} to remove {}", id_2, id_1);
@@ -623,6 +680,7 @@ fn main() -> Result<(), slint::PlatformError> {
                 } else {
                     println!("No sender for drone {}", id_2);
                 }
+            }
             } else {
                 println!("No senders map loaded");
             }
