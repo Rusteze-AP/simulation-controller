@@ -148,11 +148,13 @@ export component RightMenu inherits Window{
     callback reactivate_drone();
     callback remove_edge();
     callback add_edge();
+    callback change_pdr();
     width: 400px;
     height: 1000px;
     in property <string> label_id;
     in-out property <Drone> selected_drone;
     out property <int> edge_selected;
+    in-out property <float> tmp_pdr: selected_drone.pdr;
 
     GridLayout {
         Row{
@@ -185,23 +187,37 @@ export component RightMenu inherits Window{
 
 
 
-        // Row{
-        //     Text {
-        //         text: "Set packet drop rate";
-        //     }
-        //     Slider { 
-        //         width: 200px;
-        //         height: 50px;
-        //         maximum: 1;
-        //         minimum: 0;
-        //         step: 0.01;
-        //         value: selected_drone.pdr;
+        Row{
+            Text {
+                text: "Set packet drop rate to : " + tmp_pdr;
+                width:200px;
+                height: 50px;
+            }
+        }
+        Row{
+            Slider { 
+                width: 200px;
+                height: 50px;
+                maximum: 1;
+                minimum: 0;
+                step: 0.01;
+                value: tmp_pdr;
                 
-        //     changed=>{
-        //         selected_drone.pdr = self.value;
-        //     }
-        //     }
-        // }
+                changed(value) => {
+                    tmp_pdr = value;
+                }
+            }
+        }
+        Row{
+            Button {
+                width: 100px;
+                height: 50px;
+                text: "Confirmed";
+                clicked => {
+                    change_pdr();
+                }
+            }
+        }
     }
 
     // TODO: sistemare posizionamento per connessioni (non in base all'id)
@@ -210,7 +226,7 @@ export component RightMenu inherits Window{
         height: 50px;
         text: "Remove connection with " + i;
         x: 0px;
-        y: 2000px + i*50px;
+        y: 200px + i*50px;
 
         clicked => {
             edge_selected = i;
@@ -243,6 +259,7 @@ export component MainWindow inherits Window {
     callback remove_edge();
     callback add_edge();
     callback remove_message();
+    callback change_pdr();
 
     in-out property <int> id_selected_drone;
     in-out property <int> edge_selected;
@@ -252,6 +269,7 @@ export component MainWindow inherits Window {
     in-out property <[Drone]> servers;
     in-out property <[Edge]> edges;
     in-out property<[Message]> messages;
+    in-out property <float> new_pdr;
 
 
     width: 1920px;
@@ -359,6 +377,12 @@ export component MainWindow inherits Window {
         add_edge => {
             parent.edge_selected = self.edge_selected;
             add_edge();
+        }
+
+        change_pdr => {
+            self.selected_drone.pdr = self.tmp_pdr;
+            new_pdr = self.selected_drone.pdr;
+            change_pdr();
         }
 
     }

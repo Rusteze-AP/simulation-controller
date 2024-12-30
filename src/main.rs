@@ -47,6 +47,7 @@ fn main() -> Result<(), slint::PlatformError> {
     let weak2 = main_window.as_weak();
     let weak3 = main_window.as_weak();
     let weak4 = main_window.as_weak();
+    let weak5 = main_window.as_weak();
 
     let mut general_receiver: Arc<Mutex<Option<Receiver<DroneEvent>>>> = Arc::new(Mutex::new(None));
     let mut general_receiver1 = general_receiver.clone();
@@ -59,6 +60,7 @@ fn main() -> Result<(), slint::PlatformError> {
     let mut senders3 = senders.clone();
     let mut senders4 = senders.clone();
     let mut senders5 = senders.clone();
+    let mut senders6 = senders.clone();
 
     let mut network_initializer: Arc<Mutex<Result<NetworkInitializer, ConfigError>>> =
         Arc::new(Mutex::new(NetworkInitializer::new(None)));
@@ -322,6 +324,8 @@ fn main() -> Result<(), slint::PlatformError> {
                                     not_adj.push(d.id as i32);
                                 }
                             }
+                            // println!("HERE ADJ: {:?}", adjent);
+                            // println!("HERE NOT_ADJ: {:?}", not_adj);
                             drones.push(Drone {
                                 adjent: slint::ModelRc::new(slint::VecModel::from(adjent)),
                                 not_adjacent: slint::ModelRc::new(slint::VecModel::from(not_adj)),
@@ -370,6 +374,7 @@ fn main() -> Result<(), slint::PlatformError> {
                             Message { id1: 0, id2: 2 },
                             Message { id1: 20, id2: 1 },
                         ])));
+                        
                     }
                 }
             } else {
@@ -688,6 +693,40 @@ fn main() -> Result<(), slint::PlatformError> {
         }
 
     });
+
+    main_window.on_add_edge(move || {
+        println!("[SIMULATION CONTROLLER ] CHANGE PDR");
+        if let Some(window) = weak5.upgrade() {
+            let mut id = window.get_id_selected_drone();
+            let new_pdr = window.get_new_pdr();
+
+            if let Some(ref mut s) = *senders6.lock().unwrap() {
+                println!("Senders map {:?}", s);
+                if let Some(sender) = s.get(&(id as u8)) {
+                    let res = sender.send(DroneCommand::SetPacketDropRate(new_pdr)); 
+                    match res {
+                        Ok(_) => {
+                            println!("SentPacketDropRate command sent to drone {}", id);
+                        }
+                        Err(e) => {
+                            println!("Error sending SentPacketDropRate command to drone {}: {:?}", id, e);
+                        }
+                    }
+                } else {
+                    println!("No sender for drone {}", id);
+                }
+            } else {
+                println!("No senders map loaded");
+            }
+    
+
+        }
+        
+
+        
+    });
+
+    
 
     main_window.run();
 
