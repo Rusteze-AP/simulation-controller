@@ -16,7 +16,7 @@ struct Edge{
 struct Message{
     id1: int,
     id2: int,
-    // si potrebbe mettere un tipo e dare colori diversi ?
+    msg_type: int, // 0 = packetSent, 1 packetDropped, 2 ControllerShortcut
 }
 
 component Drone inherits Rectangle{
@@ -226,7 +226,7 @@ export component RightMenu inherits Window{
         height: 50px;
         text: "Remove connection with " + i;
         x: 0px;
-        y: 200px + i*50px;
+        y: 250px + i*50px;
 
         clicked => {
             edge_selected = i;
@@ -239,7 +239,7 @@ export component RightMenu inherits Window{
         height: 50px;
         text: "Add connection with " + d;
         x: 200px;
-        y: 200px + d*50px;
+        y: 250px + d*50px;
         clicked => {
             edge_selected = d;
             add_edge();
@@ -396,6 +396,7 @@ export component MainWindow inherits Window {
         end_y: messages[i].id2<30 ?(1080px/2.5 +(1080px / 3) * sin(2 * 1rad* 3.14159 * messages[i].id2 / 10) + (64px / 3) +32px)/1px : (1080px/3 +(messages[i].id2 -30)*175px + 32px)/1px;
         step_x: (self.end_x - self.current_x) / self.counter;
         step_y: (self.end_y - self.current_y) / self.counter;
+        background: messages[i].msg_type == 0 ? #d5d239: messages[i].msg_type == 1 ?#d53939 :#39d5d2;
 
         move_message => {
             self.current_x += self.step_x;

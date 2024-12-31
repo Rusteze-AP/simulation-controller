@@ -104,7 +104,7 @@ fn main() -> Result<(), slint::PlatformError> {
                             println!("[SIMULATION CONTROLLER] PacketDropped {:?}", packet);
                             // let mut messages : ModelRc<Message> = window.get_messages();
                             // if let Some(vec_model) = messages.as_any().downcast_ref::<VecModel<Message>>() {
-                            //     vec_model.push(Message{id1: packet.routing_header.hops[packet.routing_header.hop_index-1] as i32 , id2: packet.routing_header.hops[packet.routing_header.hop_index] as i32});
+                            //     vec_model.push(Message{id1: packet.routing_header.hops[packet.routing_header.hop_index-1] as i32 , id2: packet.routing_header.hops[packet.routing_header.hop_index] as i32, 0});
                             // }
                             // window.set_messages(messages);
                         }
@@ -112,7 +112,7 @@ fn main() -> Result<(), slint::PlatformError> {
                             println!("[SIMULATION CONTROLLER] PacketSent {:?}", packet);
                             // let mut messages : ModelRc<Message> = window.get_messages();
                             // if let Some(vec_model) = messages.as_any().downcast_ref::<VecModel<Message>>() {
-                            //     vec_model.push(Message{id1: packet.routing_header.hops[packet.routing_header.hop_index-1] as i32 , id2: packet.routing_header.hops[packet.routing_header.hop_index] as i32});
+                            //     vec_model.push(Message{id1: packet.routing_header.hops[packet.routing_header.hop_index-1] as i32 , id2: packet.routing_header.hops[packet.routing_header.hop_index] as i32, 1});
                             // }
                             // window.set_messages(messages);
                         }
@@ -121,7 +121,7 @@ fn main() -> Result<(), slint::PlatformError> {
                             // add to message queue
                             // let mut messages : ModelRc<Message> = window.get_messages();
                             // if let Some(vec_model) = messages.as_any().downcast_ref::<VecModel<Message>>() {
-                            //     vec_model.push(Message{id1: packet.routing_header.hops[packet.routing_header.hop_index-1] as i32 , id2: packet.routing_header.hops[packet.routing_header.hop_index] as i32});
+                            //     vec_model.push(Message{id1: packet.routing_header.hops[packet.routing_header.hop_index-1] as i32 , id2: packet.routing_header.hops[packet.routing_header.hop_index] as i32, 2});
                             // }
                             // window.set_messages(messages);
 
@@ -371,8 +371,8 @@ fn main() -> Result<(), slint::PlatformError> {
                         window.set_drones(slint::ModelRc::new(slint::VecModel::from(drones)));
                         window.set_servers(slint::ModelRc::new(slint::VecModel::from(servers)));
                         window.set_messages(slint::ModelRc::new(slint::VecModel::from(vec![
-                            Message { id1: 0, id2: 2 },
-                            Message { id1: 20, id2: 1 },
+                            Message { id1: 0, id2: 2 , msg_type: 0},
+                            Message { id1: 20, id2: 1 , msg_type: 1},
                         ])));
                         
                     }
