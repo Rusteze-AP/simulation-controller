@@ -132,13 +132,13 @@ fn main() -> Result<(), slint::PlatformError> {
     //initial configuration -> default
     let network_initializer: Arc<Mutex<Result<NetworkInitializer, ConfigError>>> = Arc::new(Mutex::new(NetworkInitializer::new(Some("test.toml"))));
     let mut sc_receiver: Arc<Mutex<Option<Receiver<DroneEvent>>>> = Arc::new(Mutex::new(None));
-    let mut _sc_senders: Arc<Mutex<Option<HashMap<NodeId, Sender<DroneCommand>>>>> = Arc::new(Mutex::new(None));
+    let mut sc_senders: Arc<Mutex<Option<HashMap<NodeId, Sender<DroneCommand>>>>> = Arc::new(Mutex::new(None));
     let mut _channels: Arc<Mutex<Option<HashMap<NodeId, Channel<Packet>>>>> = Arc::new(Mutex::new(None));
 
 
     if let Ok(ref mut c)= *network_initializer.lock().unwrap() {
         sc_receiver = Arc::new(Mutex::new(Some((*c).get_controller_recv())));
-        _sc_senders = Arc::new(Mutex::new(Some((*c).get_controller_senders())));
+        sc_senders = Arc::new(Mutex::new(Some((*c).get_controller_senders())));
         _channels = Arc::new(Mutex::new(Some((*c).get_channels())));
 
         let nodes = c.get_nodes();
@@ -795,36 +795,33 @@ fn main() -> Result<(), slint::PlatformError> {
 
     });
 
-    main_window.on_add_edge(move || {
-        // println!("[SIMULATION CONTROLLER ] CHANGE PDR");
-        // if let Some(window) = weak5.upgrade() {
-        //     let mut id = window.get_id_selected_drone();
-        //     let new_pdr = window.get_new_pdr();
+    let weak = main_window.as_weak();
+    let senders = sc_senders.clone();
+    main_window.on_change_pdr(move || {
+        println!("[SIMULATION CONTROLLER ] CHANGE PDR");
+        if let Some(window) = weak.upgrade() {
+            let id = window.get_id_selected_drone();
+            let new_pdr = window.get_new_pdr();
 
-        //     if let Some(ref mut s) = *senders6.lock().unwrap() {
-        //         println!("Senders map {:?}", s);
-        //         if let Some(sender) = s.get(&(id as u8)) {
-        //             let res = sender.send(DroneCommand::SetPacketDropRate(new_pdr)); 
-        //             match res {
-        //                 Ok(_) => {
-        //                     println!("SentPacketDropRate command sent to drone {}", id);
-        //                 }
-        //                 Err(e) => {
-        //                     println!("Error sending SentPacketDropRate command to drone {}: {:?}", id, e);
-        //                 }
-        //             }
-        //         } else {
-        //             println!("No sender for drone {}", id);
-        //         }
-        //     } else {
-        //         println!("No senders map loaded");
-        //     }
-    
-
-        // }
-        
-
-        
+            if let Some(ref mut s) = *senders.lock().unwrap() {
+                println!("Senders map {:?}", s);
+                if let Some(sender) = s.get(&(id as u8)) {
+                    let res = sender.send(DroneCommand::SetPacketDropRate(new_pdr)); 
+                    match res {
+                        Ok(_) => {
+                            println!("SentPacketDropRate command sent to drone {}", id);
+                        }
+                        Err(e) => {
+                            println!("Error sending SentPacketDropRate command to drone {}: {:?}", id, e);
+                        }
+                    }
+                } else {
+                    println!("No sender for drone {}", id);
+                }
+            } else {
+                println!("No senders map loaded");
+            }
+        }  
     });
 
     main_window.run();

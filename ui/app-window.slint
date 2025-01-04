@@ -165,7 +165,15 @@ export component RightMenu inherits Window{
                 border-color: black;
                 border-width: 0.5px;
                 Text {
-                    text: "Node Control : " + selected_drone.id;
+                    y: 0px;
+                    text: "Node Control : " + selected_drone.id; 
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                    color: black;
+                }
+                Text {
+                    y:25px;
+                    text: "Pdr : " + selected_drone.pdr; 
                     horizontal-alignment: center;
                     vertical-alignment: center;
                     color: black;
@@ -263,7 +271,6 @@ export component MainWindow inherits Window {
 
     in-out property <int> id_selected_drone;
     in-out property <int> edge_selected;
-    in-out property <string> test;
     in-out property <[Drone]> drones;
     in-out property <[Drone]> clients;
     in-out property <[Drone]> servers;
@@ -353,7 +360,7 @@ export component MainWindow inherits Window {
     RightMenu {
         x: parent.width - self.width;
         y: parent.height/4;
-        label_id: "drone" + id_selected_drone + test;
+        label_id: "drone" + id_selected_drone;
         selected_drone: drones[id_selected_drone];
 
         crash_drone => {
@@ -379,10 +386,10 @@ export component MainWindow inherits Window {
             add_edge();
         }
 
-        change_pdr => {
-            self.selected_drone.pdr = self.tmp_pdr;
-            new_pdr = self.selected_drone.pdr;
+        change_pdr() => {
+            new_pdr = self.tmp_pdr;
             change_pdr();
+            drones[id_selected_drone].pdr = self.tmp_pdr;
         }
 
     }
