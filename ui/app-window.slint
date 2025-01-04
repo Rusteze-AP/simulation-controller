@@ -87,9 +87,9 @@ component Message inherits Rectangle{
     width: 12px;
     background: #d5d239;
     border-radius: self.width/2;
-    x: current_x*1px;
-    y: current_y*1px;
-    counter: 4;
+    x: current_x*1px -6px;
+    y: current_y*1px -6px;
+    counter: 20;
     animate background { duration: 800ms; } //-> MAYBE LATER
 }
 
@@ -390,10 +390,11 @@ export component MainWindow inherits Window {
 
 
     for message[i] in messages : Message {
-        current_x: messages[i].id1<20 ? (1920px/2.15 + (1080px / 3) * cos(2 * 1rad * 3.14159 * messages[i].id1 /10) + (64px / 2) +32px)/1px : (1920px/5 +32px)/1px;
-        current_y: messages[i].id1<20 ?(1080px/2.5 +(1080px / 3) * sin(2 * 1rad* 3.14159 * messages[i].id1 / 10) + (64px / 3) +32px)/1px: (1080px/3 +(messages[i].id1 - 20) *175px +32px)/1px;
-        end_x: messages[i].id2<30 ? (1920px/2.15 + (1080px / 3) * cos(2 * 1rad * 3.14159 * messages[i].id2 /10) + (64px / 2) +32px)/1px : (1920px/5 + 2*1080px / 3 + 275px +32px)/1px;
-        end_y: messages[i].id2<30 ?(1080px/2.5 +(1080px / 3) * sin(2 * 1rad* 3.14159 * messages[i].id2 / 10) + (64px / 3) +32px)/1px : (1080px/3 +(messages[i].id2 -30)*175px + 32px)/1px;
+        current_x: messages[i].id1<20 ? (1920px/2.15 + (1080px / 3) * cos(2 * 1rad * 3.14159 * messages[i].id1 /10) + (64px / 2) +32px)/1px : (messages[i].id1<30 ?  (1920px/5 +32px)/1px : (1920px/5 + 2*1080px / 3 + 275px +32px)/1px) ;
+        current_y: messages[i].id1<20 ?(1080px/2.5 +(1080px / 3) * sin(2 * 1rad* 3.14159 * messages[i].id1 / 10) + (64px / 3) +32px)/1px: ( messages[i].id1<30 ? (1080px/3 +(messages[i].id1 - 20) *175px +32px)/1px : (1080px/3 +(messages[i].id1 -30)*175px + 32px)/1px);
+        end_x: messages[i].id2<20 ? (1920px/2.15 + (1080px / 3) * cos(2 * 1rad * 3.14159 * messages[i].id2 /10) + (64px / 2) +32px)/1px : (messages[i].id2<30 ?  (1920px/5 +32px)/1px : (1920px/5 + 2*1080px / 3 + 275px +32px)/1px);
+        end_y: messages[i].id2<20 ?(1080px/2.5 +(1080px / 3) * sin(2 * 1rad* 3.14159 * messages[i].id2 / 10) + (64px / 3) +32px)/1px: ( messages[i].id2<30 ? (1080px/3 +(messages[i].id2 - 20) *175px +32px)/1px : (1080px/3 +(messages[i].id2 -30)*175px + 32px)/1px);
+
         step_x: (self.end_x - self.current_x) / self.counter;
         step_y: (self.end_y - self.current_y) / self.counter;
         background: messages[i].msg_type == 0 ? #d5d239: messages[i].msg_type == 1 ?#d53939 :#39d5d2;
@@ -404,7 +405,7 @@ export component MainWindow inherits Window {
         }
 
         Timer {
-            interval: 500ms;
+            interval: 100ms;
             running: parent.counter == 0? false : true;
             triggered => {
                 parent.counter = parent.counter - 1;
