@@ -238,7 +238,11 @@ export component RightMenu inherits Window{
 
         clicked => {
             edge_selected = i;
-            remove_edge();
+            if selected_drone.adjent.length > 1{
+                remove_edge();
+            }else{
+                self.text = "Can't remove last connection";
+            }
         }
     }
 
@@ -417,11 +421,8 @@ export component MainWindow inherits Window {
             triggered => {
                 parent.counter = parent.counter - 1;
                 parent.move_message();
-                // remove_message(); -> fa crashare, probabilmente per accesso concorrente alla lista
             }
         }
-        // vanno rimossi dalla lista poi
-        //vanno anche fatti muovere prima
     }
 
 

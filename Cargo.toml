@@ -14,7 +14,8 @@ network-initializer = { path = "../network-initializer" }
 wg_internal = { git = "https://github.com/WGL-2024/WGL_repo_2024.git", features = [
     "debug",
 ] }
-rusteze_drone = { git = "ssh://git@github.com/Rusteze-AP/drone.git", branch = "main" }
+# rusteze_drone = { git = "ssh://git@github.com/Rusteze-AP/drone.git", branch = "main" }
+rusteze_drone = { path="../drone" }
 client = { git = "ssh://git@github.com/Rusteze-AP/client.git", branch = "rocket" }
 # client = { path = "../client"}
 server = { git = "ssh://git@github.com/Rusteze-AP/server.git", branch = "main" }

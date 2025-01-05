@@ -2892,6 +2892,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "logger"
+version = "0.1.0"
+source = "git+ssh://git@github.com/Rusteze-AP/logger.git#9bbb1b4fe09fb41c165c4e88c171b2a4d713ab88"
+dependencies = [
+ "chrono",
+ "futures",
+ "tokio",
+ "warp",
+]
+
+[[package]]
 name = "loom"
 version = "0.5.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3112,7 +3123,7 @@ dependencies = [
  "client",
  "crossbeam",
  "ctrlc",
- "rusteze_drone",
+ "rusteze_drone 0.1.0 (git+ssh://git@github.com/Rusteze-AP/drone.git?branch=main)",
  "serde",
  "server",
  "thiserror 2.0.9",
@@ -3492,7 +3503,7 @@ version = "0.1.0"
 source = "git+ssh://git@github.com/Rusteze-AP/packet-forge.git?branch=main#f2df7c34e4374c169889fbc8b0b3243e8b796ff7"
 dependencies = [
  "bytes",
- "logger",
+ "logger 0.1.0 (git+https://github.com/Rusteze-AP/logger.git?branch=main)",
  "rand",
  "serde",
  "serde_json",
@@ -3505,7 +3516,20 @@ version = "0.1.0"
 source = "git+ssh://git@github.com/Rusteze-AP/packetForge.git?branch=main#f2df7c34e4374c169889fbc8b0b3243e8b796ff7"
 dependencies = [
  "bytes",
- "logger",
+ "logger 0.1.0 (git+https://github.com/Rusteze-AP/logger.git?branch=main)",
+ "rand",
+ "serde",
+ "serde_json",
+ "wg_internal",
+]
+
+[[package]]
+name = "packet_forge"
+version = "0.1.0"
+source = "git+ssh://git@github.com/Rusteze-AP/packet-forge.git#f2df7c34e4374c169889fbc8b0b3243e8b796ff7"
+dependencies = [
+ "bytes",
+ "logger 0.1.0 (git+https://github.com/Rusteze-AP/logger.git?branch=main)",
  "rand",
  "serde",
  "serde_json",
@@ -4071,6 +4095,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "routing-handler"
+version = "0.1.0"
+source = "git+ssh://git@github.com/Rusteze-AP/routing-handler.git#ff611af6465a73722b04428675e51f07831c1039"
+dependencies = [
+ "logger 0.1.0 (git+https://github.com/Rusteze-AP/logger.git?branch=main)",
+ "wg_internal",
+]
+
+[[package]]
 name = "rowan"
 version = "0.15.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4121,10 +4154,21 @@ dependencies = [
 [[package]]
 name = "rusteze_drone"
 version = "0.1.0"
-source = "git+ssh://git@github.com/Rusteze-AP/drone.git?branch=main#f463bf798c072dfbcd1544793140f6d0f7dc79c9"
 dependencies = [
  "crossbeam",
- "logger",
+ "logger 0.1.0 (git+https://github.com/Rusteze-AP/logger.git?branch=main)",
+ "rand",
+ "rusteze-tests",
+ "wg_internal",
+]
+
+[[package]]
+name = "rusteze_drone"
+version = "0.1.0"
+source = "git+ssh://git@github.com/Rusteze-AP/drone.git?branch=main#d60caff4bc1ff1f97a72615032acc96f6c33089b"
+dependencies = [
+ "crossbeam",
+ "logger 0.1.0 (git+https://github.com/Rusteze-AP/logger.git?branch=main)",
  "rand",
  "rusteze-tests",
  "wg_internal",
@@ -4304,10 +4348,12 @@ dependencies = [
 [[package]]
 name = "server"
 version = "0.1.0"
-source = "git+ssh://git@github.com/Rusteze-AP/server.git?branch=main#19c076f9e4b43ee39d591f1dccebb07d4d130bcf"
+source = "git+ssh://git@github.com/Rusteze-AP/server.git?branch=main#84932aada9050b5ba5cde2964f0319a1792a9361"
 dependencies = [
  "crossbeam",
- "packet_forge 0.1.0 (git+ssh://git@github.com/Rusteze-AP/packet-forge.git?branch=main)",
+ "logger 0.1.0 (git+ssh://git@github.com/Rusteze-AP/logger.git)",
+ "packet_forge 0.1.0 (git+ssh://git@github.com/Rusteze-AP/packet-forge.git)",
+ "routing-handler",
  "wg_internal",
 ]
 
@@ -4455,11 +4501,11 @@ version = "0.1.0"
 dependencies = [
  "client",
  "crossbeam",
- "logger",
+ "logger 0.1.0 (git+https://github.com/Rusteze-AP/logger.git?branch=main)",
  "network-initializer",
  "packet_forge 0.1.0 (git+ssh://git@github.com/Rusteze-AP/packet-forge.git?branch=main)",
  "rfd",
- "rusteze_drone",
+ "rusteze_drone 0.1.0",
  "server",
  "slint",
  "slint-build",
@@ -4665,9 +4711,9 @@ dependencies = [
 
 [[package]]
 name = "syn"
-version = "2.0.94"
+version = "2.0.95"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "987bc0be1cdea8b10216bd06e2ca407d40b9543468fafd3ddfb02f36e77f71f3"
+checksum = "46f71c0377baf4ef1cc3e3402ded576dccc315800fbc62dfc7fe04b009773b4a"
 dependencies = [
  "proc-macro2",
  "quote",

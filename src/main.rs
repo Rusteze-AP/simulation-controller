@@ -44,13 +44,13 @@ fn populate_drones(parsed_drones: &Vec<ParsedDrone>, edges: &mut Vec<Edge>) -> V
 
         let mut not_adj = vec![];
         for d in parsed_drones {
-            if !adjent.contains(&(d.id as i32)) && d.id != drone.id {
+            if (!adjent.contains(&(d.id as i32))) && d.id != drone.id {
                 not_adj.push(d.id as i32);
             }
         }
         drones.push(Drone {
             adjent: slint::ModelRc::new(slint::VecModel::from(adjent)),
-            not_adjacent: slint::ModelRc::new(slint::VecModel::from(vec![])),
+            not_adjacent: slint::ModelRc::new(slint::VecModel::from(not_adj)),
             crashed: false,
             id: drone.id as i32,
             pdr: drone.pdr,
@@ -133,13 +133,13 @@ fn main() -> Result<(), slint::PlatformError> {
     let network_initializer: Arc<Mutex<Result<NetworkInitializer, ConfigError>>> = Arc::new(Mutex::new(NetworkInitializer::new(Some("test.toml"))));
     let mut sc_receiver: Arc<Mutex<Option<Receiver<DroneEvent>>>> = Arc::new(Mutex::new(None));
     let mut sc_senders: Arc<Mutex<Option<HashMap<NodeId, Sender<DroneCommand>>>>> = Arc::new(Mutex::new(None));
-    let mut _channels: Arc<Mutex<Option<HashMap<NodeId, Channel<Packet>>>>> = Arc::new(Mutex::new(None));
+    let mut channels: Arc<Mutex<Option<HashMap<NodeId, Channel<Packet>>>>> = Arc::new(Mutex::new(None));
 
 
     if let Ok(ref mut c)= *network_initializer.lock().unwrap() {
         sc_receiver = Arc::new(Mutex::new(Some((*c).get_controller_recv())));
         sc_senders = Arc::new(Mutex::new(Some((*c).get_controller_senders())));
-        _channels = Arc::new(Mutex::new(Some((*c).get_channels())));
+        channels = Arc::new(Mutex::new(Some((*c).get_channels())));
 
         let nodes = c.get_nodes();
 
@@ -528,271 +528,242 @@ fn main() -> Result<(), slint::PlatformError> {
         // }
     });
 
-    // TODO: remove channel
+    // Note: the channels are not removed becuase the connection cannot be deleted if it is the last of the drone
+    let weak = main_window.as_weak();
+    let senders = sc_senders.clone();
     main_window.on_remove_edge(move || {
-        // println!("[SIMULATION CONTROLLER ]");
-        // if let Some(window) = weak3.upgrade() {
-        //     let mut id_1 = window.get_id_selected_drone();
-        //     let mut id_2 = window.get_edge_selected();
-
-        //     // REMOVE EDGE
-        //     let mut edges = window.get_edges();
-        //     let mut edges_new: Vec<Edge> = vec![];
-        //     for edge in edges.iter() {
-        //         if (edge.id1 == id_1 && edge.id2 == id_2) || (edge.id1 == id_2 && edge.id2 == id_1)
-        //         {
-        //             println!("removed {} {}", edge.id1, edge.id2);
-        //         } else {
-        //             edges_new.push(Edge {
-        //                 id1: edge.id1,
-        //                 id2: edge.id2,
-        //             });
-        //         }
-        //     }
-        //     window.set_edges(slint::ModelRc::new(slint::VecModel::from(edges_new)));
-
-        //     // COMMUNICATE REMOTION TO DRONES to id_1
-        //     if let Some(ref mut s) = *senders3.lock().unwrap() {
-        //         println!("Senders map {:?}", s);
-        //         if let Some(sender) = s.get(&(id_1 as u8)) {
-        //             let res = sender.send(DroneCommand::RemoveSender(id_2 as u8));
-        //             match res {
-        //                 Ok(_) => {
-        //                     println!("RemoveSender command sent to drone {} to remove {}", id_1, id_2);
-        //                 }
-        //                 Err(e) => {
-        //                     println!("Error sending RemoveSender command to drone {}: {:?}", id_1, e);
-        //                 }
-        //             }
-        //         } else {
-        //             println!("No sender for drone {}", id_1);
-        //         }
-        //     } else {
-        //         println!("No senders map loaded");
-        //     }
-
-        //     // COMMUNICATE REMOTION TO DRONES to id_2
-        //     if let Some(ref mut s) = *senders3.lock().unwrap() {
-        //         println!("Senders map {:?}", s);
-        //         if let Some(sender) = s.get(&(id_2 as u8)) {
-        //             let res = sender.send(DroneCommand::RemoveSender(id_1 as u8));
-        //             match res {
-        //                 Ok(_) => {
-        //                     println!("RemoveSender command sent to drone {} to remove {}", id_2, id_1);
-        //                 }
-        //                 Err(e) => {
-        //                     println!("Error sending RemoveSender command to drone {}: {:?}", id_2, e);
-        //                 }
-        //             }
-
-        //         } else {
-        //             println!("No sender for drone {}", id_2);
-        //         }
-        //     } else {
-        //         println!("No senders map loaded");
-        //     }
-
-        //     // remove channel -> TO TEST (dovrei controllare se ha delle connessioni e in caso eliminarle??????)
-        //     // if let Some(ref mut channel) = *channels2.lock().unwrap() {
-
-        //     //     if let Some(channel_) = s.get(&(id_1 as u8)) {
-        //     //         let res = sender.send(DroneCommand::RemoveSender(id_2 as u8));
-        //     //         match res {
-        //     //             Ok(_) => {
-        //     //                 println!("RemoveSender command sent to drone {} to remove {}", id_1, id_2);
-        //     //             }
-        //     //             Err(e) => {
-        //     //                 println!("Error sending RemoveSender command to drone {}: {:?}", id_1, e);
-        //     //             }
-        //     //         }
-        //     //     } else {
-        //     //         println!("No sender for drone {}", id_1);
-        //     //     }
-        //     // } else {
-        //     //     println!("No senders map loaded");
-        //     // }
+        println!("[SIMULATION CONTROLLER] REMOVE EDGE");
+        if let Some(window) = weak.upgrade() {
+            let id_1 = window.get_id_selected_drone();
+            let id_2 = window.get_edge_selected();
 
 
-        //     // REMOVE ADJACENT
-        //     let mut drones = window.get_drones();
-        //     let mut drones_new: Vec<Drone> = vec![];
-        //     for drone in drones.iter() {
-        //         if drone.id == id_1 {
-        //             let mut adjent = vec![];
-        //             for adj in drone.adjent.iter() {
-        //                 if adj != id_2 {
-        //                     adjent.push(adj);
-        //                 }
-        //             }
-        //             let mut not_a = vec![];
-        //             for not_adj in drone.not_adjacent.iter() {
-        //                 not_a.push(not_adj);
-        //             }
-        //             not_a.push(id_2);
+            // COMMUNICATE REMOTION TO DRONES to id_1
+            if let Some(ref mut s) = *senders.lock().unwrap() {
+                println!("Senders map {:?}", s);
+                if let Some(sender) = s.get(&(id_1 as u8)) {
+                    let res = sender.send(DroneCommand::RemoveSender(id_2 as u8));
+                    match res {
+                        Ok(_) => {
+                            println!("RemoveSender command sent to drone {} to remove {}", id_1, id_2);
+                        }
+                        Err(e) => {
+                            println!("Error sending RemoveSender command to drone {}: {:?}", id_1, e);
+                        }
+                    }
+                } else {
+                    println!("No sender for drone {}", id_1);
+                }
+            } else {
+                println!("No senders map loaded");
+            }
 
-        //             drones_new.push(Drone {
-        //                 adjent: slint::ModelRc::new(slint::VecModel::from(adjent)),
-        //                 not_adjacent: slint::ModelRc::new(slint::VecModel::from(not_a)),
-        //                 crashed: drone.crashed,
-        //                 id: drone.id,
-        //                 pdr: drone.pdr,
-        //             });
-        //         } else if drone.id == id_2 {
-        //             let mut adjent = vec![];
-        //             for adj in drone.adjent.iter() {
-        //                 if adj != id_1 {
-        //                     adjent.push(adj);
-        //                 }
-        //             }
+            // COMMUNICATE REMOTION TO DRONES to id_2
+            if let Some(ref mut s) = *senders.lock().unwrap() {
+                println!("Senders map {:?}", s);
+                if let Some(sender) = s.get(&(id_2 as u8)) {
+                    let res = sender.send(DroneCommand::RemoveSender(id_1 as u8));
+                    match res {
+                        Ok(_) => {
+                            println!("RemoveSender command sent to drone {} to remove {}", id_2, id_1);
+                        }
+                        Err(e) => {
+                            println!("Error sending RemoveSender command to drone {}: {:?}", id_2, e);
+                        }
+                    }
 
-        //             let mut not_a = vec![];
-        //             for not_adj in drone.not_adjacent.iter() {
-        //                 not_a.push(not_adj);
-        //             }
-        //             not_a.push(id_1);
-        //             drones_new.push(Drone {
-        //                 adjent: slint::ModelRc::new(slint::VecModel::from(adjent)),
-        //                 not_adjacent: slint::ModelRc::new(slint::VecModel::from(not_a)),
-        //                 crashed: drone.crashed,
-        //                 id: drone.id,
-        //                 pdr: drone.pdr,
-        //             });
-        //         } else {
-        //             drones_new.push(Drone {
-        //                 adjent: drone.adjent.clone(),
-        //                 not_adjacent: drone.not_adjacent.clone(),
-        //                 crashed: drone.crashed,
-        //                 id: drone.id,
-        //                 pdr: drone.pdr,
-        //             });
-        //         }
-        //     }
-        //     window.set_drones(slint::ModelRc::new(slint::VecModel::from(drones_new)));
-        // }
+                } else {
+                    println!("No sender for drone {}", id_2);
+                }
+            } else {
+                println!("No senders map loaded");
+            }
+
+            // REMOVE EDGE
+            let edges = window.get_edges();
+            let mut i = 0;
+            for edge in edges.iter() {
+                if (edge.id1 == id_1 && edge.id2 == id_2) || (edge.id1 == id_2 && edge.id2 == id_1){
+                   if let Some(vec_model) = edges.as_any().downcast_ref::<VecModel<Edge>>() {
+                        vec_model.remove(i);
+                    }else{
+                        println!("problems in downcasting edges");
+                    }
+                    break;
+                }
+                i = i+1;
+            }
+
+
+            // REMOVE ADJACENT
+            let drones = window.get_drones();
+            for drone in drones.iter() {
+                if drone.id == id_1 {
+                    let mut i = 0;
+                    for adj in drone.adjent.iter() {
+                        if adj == id_2 {
+                            if let Some(vec_model) = drone.adjent.as_any().downcast_ref::<VecModel<i32>>() {
+                                vec_model.remove(i);
+                            }else{
+                                println!("problems in downcasting adjacent");
+                            }
+                            if let Some(vec_model) = drone.not_adjacent.as_any().downcast_ref::<VecModel<i32>>() {
+                                vec_model.push(id_2);
+                            }else{
+                                println!("problems in downcasting not_adjacent");
+                            }
+                            break;
+
+                        }
+                        i = i+1;
+                    }
+                } else if drone.id == id_2 {
+                    let mut i = 0;
+                    for adj in drone.adjent.iter() {
+                        if adj == id_1 {
+                            if let Some(vec_model) = drone.adjent.as_any().downcast_ref::<VecModel<i32>>() {
+                                vec_model.remove(i);
+                            }else{
+                                println!("problems in downcasting adjacent");
+                            }
+                            if let Some(vec_model) = drone.not_adjacent.as_any().downcast_ref::<VecModel<i32>>() {
+                                vec_model.push(id_1);
+                            }else{
+                                println!("problems in downcasting not_adjacent");
+                            }
+                            break;
+
+                        }
+                        i = i+1;
+                    }
+                }
+            }
+        }
     });
 
-    // TODO: add channel
+    // Note: the channels are not created becuase the connection the drones already exists, they are only cloned
+    let weak = main_window.as_weak();
+    let senders = sc_senders.clone();
+    let channels_ = channels.clone();
     main_window.on_add_edge(move || {
-        // println!("[SIMULATION CONTROLLER ] ADD EDGE");
-        // if let Some(window) = weak4.upgrade() {
-        //     let mut id_1 = window.get_id_selected_drone();
-        //     let mut id_2 = window.get_edge_selected();
+        println!("[SIMULATION CONTROLLER ] ADD EDGE");
+        if let Some(window) = weak.upgrade() {
+            let id_1 = window.get_id_selected_drone();
+            let id_2 = window.get_edge_selected();
 
-        //     // ADD EDGE
-        //     let mut edges = window.get_edges();
-        //     if let Some(edge) = edges.as_any().downcast_ref::<VecModel<Edge>>() {
-        //         if id_1<id_2{
-        //             edge.push(Edge{id1: id_1, id2: id_2});
-        //         }else{
-        //             edge.push(Edge{id1: id_2, id2: id_1});
-        //         }
-        //     }
+            let mut sender_id_1: Option<Sender<Packet>> = None;
+            let mut sender_id_2: Option<Sender<Packet>> = None;
 
-        //     // ADD ADJCENT TO NODE (and remove from not_adjacent)
-        //     let mut drones = window.get_drones();
-        //     if let Some(drone) = drones.as_any().downcast_ref::<VecModel<Drone>>() {
-        //         for d in drone.iter(){
-        //             if d.id==id_1{
-        //                 if let Some(adj) = d.adjent.as_any().downcast_ref::<VecModel<i32>>() {
-        //                     adj.push(id_2);
-        //                 }
-        //                 if let Some(n_adj) = d.not_adjacent.as_any().downcast_ref::<VecModel<i32>>() {
-        //                     let mut i = 0;
-        //                     for e in n_adj.iter(){
-        //                         if e==id_2{
-        //                             n_adj.remove(i);
-        //                             break;
-        //                         }
-        //                         i = i+1;
-        //                     }
-        //                 }
-        //             }
-        //             if d.id==id_2{
-        //                 if let Some(adj) = d.adjent.as_any().downcast_ref::<VecModel<i32>>() {
-        //                     adj.push(id_1);
-        //                 }
-        //                 if let Some(n_adj) = d.not_adjacent.as_any().downcast_ref::<VecModel<i32>>() {
-        //                     let mut i = 0;
-        //                     for e in n_adj.iter(){
-        //                         if e==id_1{
-        //                             n_adj.remove(i);
-        //                             break;
-        //                         }
-        //                         i = i+1;
-        //                     }
-        //                 }
-        //             }
-        //         }
-        //     }
+            if let Some(ref mut channel) = *channels_.lock().unwrap() {
 
-        //     // TODO: create channels in reality from NI
-        //     let mut sender_id_1: Option<Sender<Packet>> = None;
-        //     let mut sender_id_2: Option<Sender<Packet>> = None;
+                if let Some(ch_1) = (*channel).get(&(id_1 as u8)) {
+                    sender_id_1 = Some(ch_1.sender.clone());
+                } else {
+                    println!("No sender for id1");
+                }
 
-        //     if let Some(ref mut channel) = *channels2.lock().unwrap() {
-
-        //         if let Some(ch_1) = (*channel).get(&(id_1 as u8)) {
-        //             sender_id_1 = Some(ch_1.sender.clone());
-        //         } else {
-        //             // TODO: channel to create and insert
-        //         }
-
-        //         if let Some(ch_2) = channel.get(&(id_2 as u8)) {
-        //             sender_id_2 = Some(ch_2.sender.clone());
-        //         } else {
-        //             // TODO: channel to create and insert
-        //         }
-        //     } else {
-        //         println!("No senders map loaded");
-        //     }
+                if let Some(ch_2) = channel.get(&(id_2 as u8)) {
+                    sender_id_2 = Some(ch_2.sender.clone());
+                } else {
+                    println!("No sender for id2");
+                }
+            } else {
+                println!("No senders map loaded");
+            }
 
 
-        //     // COMMUNICATE ADDITION TO DRONES to id_1
-        //     if let Some(ref mut s) = *senders4.lock().unwrap() {
-        //         println!("Senders map {:?}", s);
-        //         if let Some(sender) = s.get(&(id_1 as u8)) {
-        //             if let Some(s_id_2)= sender_id_2{
-        //             let res = sender.send(DroneCommand::AddSender(id_2 as u8, s_id_2)); 
-        //             match res {
-        //                 Ok(_) => {
-        //                     println!("RemoveSender command sent to drone {} to remove {}", id_1, id_2);
-        //                 }
-        //                 Err(e) => {
-        //                     println!("Error sending RemoveSender command to drone {}: {:?}", id_1, e);
-        //                 }
-        //             }
-        //         } else {
-        //             println!("No sender for drone {}", id_1);
-        //         }
-        //     }
-        //     } else {
-        //         println!("No senders map loaded");
-        //     }
+            // COMMUNICATE ADDITION TO DRONES to id_1
+            if let Some(ref mut s) = *senders.lock().unwrap() {
+                println!("Senders map {:?}", s);
+                if let Some(sender) = s.get(&(id_1 as u8)) {
+                    if let Some(s_id_2)= sender_id_2{
+                    let res = sender.send(DroneCommand::AddSender(id_2 as u8, s_id_2)); 
+                    match res {
+                        Ok(_) => {
+                            println!("AddSender command sent to drone {} to add {}", id_1, id_2);
+                        }
+                        Err(e) => {
+                            println!("Error sending AddSender command to drone {}: {:?}", id_1, e);
+                        }
+                    }
+                } else {
+                    println!("No sender for drone {}", id_1);
+                }
+            }
+            } else {
+                println!("No senders map loaded");
+            }
 
-        //     // COMMUNICATE ADDITION TO DRONES to id_2
-        //     if let Some(ref mut s) = *senders4.lock().unwrap() {
-        //         println!("Senders map {:?}", s);
-        //         if let Some(sender) = s.get(&(id_2 as u8)) {
-        //             if let Some(s_id_1)= sender_id_1{
-        //             let res = sender.send(DroneCommand::AddSender(id_1 as u8, s_id_1)); 
-        //             match res {
-        //                 Ok(_) => {
-        //                     println!("RemoveSender command sent to drone {} to remove {}", id_2, id_1);
-        //                 }
-        //                 Err(e) => {
-        //                     println!("Error sending RemoveSender command to drone {}: {:?}", id_2, e);
-        //                 }
-        //             }
-        //         } else {
-        //             println!("No sender for drone {}", id_2);
-        //         }
-        //     }
-        //     } else {
-        //         println!("No senders map loaded");
-        //     }
+            // COMMUNICATE ADDITION TO DRONES to id_2
+            if let Some(ref mut s) = *senders.lock().unwrap() {
+                println!("Senders map {:?}", s);
+                if let Some(sender) = s.get(&(id_2 as u8)) {
+                    if let Some(s_id_1)= sender_id_1{
+                    let res = sender.send(DroneCommand::AddSender(id_1 as u8, s_id_1)); 
+                    match res {
+                        Ok(_) => {
+                            println!("AddSender command sent to drone {} to add {}", id_2, id_1);
+                        }
+                        Err(e) => {
+                            println!("Error sending AddSender command to drone {}: {:?}", id_2, e);
+                        }
+                    }
+                } else {
+                    println!("No sender for drone {}", id_2);
+                }
+            }
+            } else {
+                println!("No senders map loaded");
+            }
 
-        // }
+            // ADD EDGE
+            let edges = window.get_edges();
+            if let Some(edge) = edges.as_any().downcast_ref::<VecModel<Edge>>() {
+                if id_1<id_2{
+                    edge.push(Edge{id1: id_1, id2: id_2});
+                }else{
+                    edge.push(Edge{id1: id_2, id2: id_1});
+                }
+            }
 
+            // ADD ADJCENT TO NODE (and remove from not_adjacent)
+            let drones = window.get_drones();
+            if let Some(drone) = drones.as_any().downcast_ref::<VecModel<Drone>>() {
+                for d in drone.iter(){
+                    if d.id==id_1{
+                        if let Some(adj) = d.adjent.as_any().downcast_ref::<VecModel<i32>>() {
+                            adj.push(id_2);
+                        }
+                        if let Some(n_adj) = d.not_adjacent.as_any().downcast_ref::<VecModel<i32>>() {
+                            let mut i = 0;
+                            for e in n_adj.iter(){
+                                if e==id_2{
+                                    n_adj.remove(i);
+                                    break;
+                                }
+                                i = i+1;
+                            }
+                        }
+                    }
+                    if d.id==id_2{
+                        if let Some(adj) = d.adjent.as_any().downcast_ref::<VecModel<i32>>() {
+                            adj.push(id_1);
+                        }
+                        if let Some(n_adj) = d.not_adjacent.as_any().downcast_ref::<VecModel<i32>>() {
+                            let mut i = 0;
+                            for e in n_adj.iter(){
+                                if e==id_1{
+                                    n_adj.remove(i);
+                                    break;
+                                }
+                                i = i+1;
+                            }
+                        }
+                    }
+                }
+            }
+
+        }
     });
 
     let weak = main_window.as_weak();
