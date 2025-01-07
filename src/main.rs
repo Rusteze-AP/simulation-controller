@@ -1,30 +1,15 @@
 slint::include_modules!();
-use crossbeam::channel::{unbounded, Receiver, Select, Sender};
-use logger::Logger;
+use crossbeam::channel::{ Receiver, Sender};
 use network_initializer::{errors::ConfigError, NetworkInitializer, parsed_nodes::{ParsedDrone, ParsedClient, ParsedServer}};
-use rfd::FileDialog;
-use slint::{Model, Window};
-use slint::{ModelRc, VecModel};
+use slint::{Model, ModelRc, VecModel};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::thread;
-use std::{
-    cell::{RefCell, RefMut},
-    ffi::OsString,
-    rc::Rc,
-    time::Duration,
-};
 use wg_internal::controller::{DroneCommand, DroneEvent};
 use wg_internal::network::NodeId;
 use wg_internal::packet::Packet;
 use network_initializer::types::channel::Channel;
 
-// // Define the ClientServer struct
-// struct ClientServer {
-//     drones_adjacent: slint::ModelRc<slint::VecModel<i32>>,
-//     drones_not_adjacent: slint::ModelRc<slint::VecModel<i32>>,
-//     id: i32,
-// }
 
 fn check_edges(edges: &Vec<Edge>, id1: i32, id2: i32) -> bool {
     for edge in edges {
@@ -136,7 +121,7 @@ fn main() -> Result<(), slint::PlatformError> {
     let main_window = MainWindow::new()?;
 
     //initial configuration -> default
-    let network_initializer: Arc<Mutex<Result<NetworkInitializer, ConfigError>>> = Arc::new(Mutex::new(NetworkInitializer::new(Some("test.toml"))));
+    let network_initializer: Arc<Mutex<Result<NetworkInitializer, ConfigError>>> = Arc::new(Mutex::new(NetworkInitializer::new(Some("test1.toml"))));
     let mut sc_receiver: Arc<Mutex<Option<Receiver<DroneEvent>>>> = Arc::new(Mutex::new(None));
     let mut sc_senders: Arc<Mutex<Option<HashMap<NodeId, Sender<DroneCommand>>>>> = Arc::new(Mutex::new(None));
     let mut channels: Arc<Mutex<Option<HashMap<NodeId, Channel<Packet>>>>> = Arc::new(Mutex::new(None));
@@ -709,9 +694,6 @@ fn main() -> Result<(), slint::PlatformError> {
                     }
                 }
             }
-
-            // TODO : - sistemare rimozione e aggiunta clients e server con le altre strutture -> capire se fare altra callback separata per evitare scazzi
-            //        - sisitemare struttura dati drone e aggiungere bottoni per connessioni client server ( o forsee no?)
         }
     });
 
@@ -1140,3 +1122,11 @@ fn main() -> Result<(), slint::PlatformError> {
     Ok(())
 }
 
+
+
+// TODO: 
+// - chiedere domani -> devo controllare per network partitions?
+// - testing with different comfig files
+// - controllare tutte cose segnate sul protocollo
+// - vogliamo aggiungere nodi nuovi? come?
+// - vogliamo cambiare la configurazione? come?
