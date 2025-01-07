@@ -2,10 +2,16 @@ import { VerticalBox, Button, LineEdit, Slider } from "std-widgets.slint";
 
 struct Drone {
     id : int,
-    crashed: bool,
     adjent: [int],
     not_adjacent: [int],
     pdr: float,
+}
+
+// no connection with other ClientServer because there cannot be a direct connection
+struct ClientServer {
+    id : int,
+    drones_adjacent: [int],
+    drones_not_adjacent: [int],
 }
 
 struct Edge{
@@ -38,9 +44,31 @@ component Drone inherits Rectangle{
 
     TouchArea {
         clicked => {
-            // Delegate to the user of this element
-            // parent.background = #FF0000;
-            open_right_window(); // to call the specific on circle
+            open_right_window();
+        }
+    }
+}
+
+component ClientServer inherits Rectangle{
+    callback open_right_window;
+    in property <string> label_id;
+
+    height: 64px;
+    width: 64px;
+    background: #d53939;
+    border-radius: self.width/2;
+    // animate background { duration: 800ms; } //-> MAYBE LATER
+
+    Text {
+        text: label_id;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+        color: black;
+    }
+
+    TouchArea {
+        clicked => {
+            open_right_window();
         }
     }
 }
@@ -94,52 +122,61 @@ component Message inherits Rectangle{
 }
 
 
-component LeftMenu inherits GridLayout {
-    callback select_file();
-    visible: true;
-    width: 300px;
-    height: 500px;
-    in property <string> selected_file;
+export component LeftMenu inherits Window{
+    width: 350px;
+    height: 1000px;
+    in-out property <string> id_selected_client_server;
+    in-out property <string> label_id;
+    in-out property <ClientServer> selected;
+    in-out property <int> edge_selected;
+    callback remove_edge();
+    callback add_edge();
 
-    Row{
-        Rectangle {
-            // width: width;
-            height: 50px;
-            background: #a0b1e4;
-            border-color: black;
-            border-width: 0.5px;
-            Text {
-                text: "General Control";
-                horizontal-alignment: center;
-                vertical-alignment: center;
-                color: black;
+    GridLayout {
+        Row{
+            Rectangle {
+                // width: width;
+                height: 50px;
+                background: #a0b1e4;
+                border-color: black;
+                border-width: 0.5px;
+                Text {
+                    text: "Clent-Server Control: " + label_id;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                    color: black;
+                }
+            }
+        }   
+    }
+
+    for i in self.selected.drones_adjacent: Button {
+        width: 175px;
+        height: 50px;
+        text: "Remove connection with " + i;
+        x: 0px;
+        y: 50px + i*50px;
+
+        clicked => {
+            edge_selected = i;
+            if selected.drones_adjacent.length > 1{
+                remove_edge();
+            }else{
+                self.text = "Can't remove last connection";
             }
         }
     }
 
-    Row{
-        Button {
-            text: "Select File";
-            width: 200px;
-            height: 50px;
-
-            clicked => {
-                // Trigger the callback to select a file (defined in Rust)
-                select_file();
-            }
+    for d in self.selected.drones_not_adjacent: Button{
+        width: 175px;
+        height: 50px;
+        text: "Add connection with " + d;
+        x: 175px;
+        y: 50px + d*50px;
+        clicked => {
+            edge_selected = d;
+            add_edge();
         }
-
-        // Text displaying the selected file path
-        Text {
-            text: selected_file;
-            horizontal-alignment: center;
-            vertical-alignment: center;
-            color: black;
-            font-size: 16px;
-            width: 200px;
-            height: 50px;
-        }
-
     }
 }
 
@@ -151,9 +188,9 @@ export component RightMenu inherits Window{
     callback change_pdr();
     width: 400px;
     height: 1000px;
-    in property <string> label_id;
+    in-out property <string> label_id;
     in-out property <Drone> selected_drone;
-    out property <int> edge_selected;
+    in-out property <int> edge_selected;
     in-out property <float> tmp_pdr: selected_drone.pdr;
 
     GridLayout {
@@ -273,10 +310,12 @@ export component MainWindow inherits Window {
     callback change_pdr();
 
     in-out property <int> id_selected_drone;
-    in-out property <int> edge_selected;
+    in-out property <int> id_selected_client_server;
+    in-out property <int> receiver_id;
+    in-out property <int> sender_id;
     in-out property <[Drone]> drones;
-    in-out property <[Drone]> clients;
-    in-out property <[Drone]> servers;
+    in-out property <[ClientServer]> clients;
+    in-out property <[ClientServer]> servers;
     in-out property <[Edge]> edges;
     in-out property<[Message]> messages;
     in-out property <float> new_pdr;
@@ -310,8 +349,6 @@ export component MainWindow inherits Window {
         x: parent.width/2.15 + (parent.height / 3) * cos(2 * 1rad * 3.14159 * drone.id /10) + (self.width / 2);
         y: parent.height/2.5 +(parent.height / 3) * sin(2 * 1rad* 3.14159 * drone.id / 10) + (self.height / 3);
         label_id: "Drone" + drone.id;
-        background: drones[i].crashed ? #65839b4e : #3960D5;
-        visible: drones[i].crashed ? false : true;
 
         open_right_window => {
             id_selected_drone = drone.id;
@@ -319,41 +356,52 @@ export component MainWindow inherits Window {
     }
 
 
-    for client[i] in clients : Drone {
+    for client[i] in clients : ClientServer {
         width: 64px;
         height: 64px;
         x: parent.width/5;
         y: parent.height/3 +i*175px;
         label_id: "Client" + client.id;
         background: red;
-    //     // propagate the solved status from the model to the tile
-    //     clicked => {
-    //         // drone.image_visible = !drone.image_visible;
-    //         clicked();
-    //     }
+
+
+        open_right_window => {
+            id_selected_client_server = client.id;
+        }
     }
 
-    for server[i] in servers : Drone {
+    for server[i] in servers : ClientServer {
         width: 64px;
         height: 64px;
         x: parent.width/5 + 2*parent.height / 3 + 275px;
         y: parent.height/3 +i*175px;
         label_id: "Server" + server.id;
         background: green;
-    //     // propagate the solved status from the model to the tile
-    //     clicked => {
-    //         // drone.image_visible = !drone.image_visible;
-    //         clicked();
-    //     }
+
+        open_right_window => {
+            id_selected_client_server = server.id;
+        }
     }
 
 
     // TODO: sistemare posizione, colore, ecc.
     LeftMenu {
         x: 0;
-        y: parent.height/2;
-        select_file => {
-            select_file();
+        y: parent.height/4;
+        label_id: id_selected_client_server<30? "client" + id_selected_client_server : "server" + id_selected_client_server;
+        selected: clients[id_selected_client_server<30? id_selected_client_server -20 : id_selected_client_server - 30];
+
+
+        remove_edge => {
+            parent.receiver_id = self.edge_selected;
+            parent.sender_id = self.selected.id;
+            remove_edge();
+        }
+
+        add_edge => {
+            parent.receiver_id = self.edge_selected;
+            parent.sender_id = self.selected.id;
+            add_edge();
         }
     }
 
@@ -370,19 +418,15 @@ export component MainWindow inherits Window {
             crash();
         }
 
-        reactivate_drone => {
-            if drones[id_selected_drone].crashed{
-                drones[id_selected_drone].crashed = false;
-            }
-        }
-
         remove_edge => {
-            parent.edge_selected = self.edge_selected;
+            parent.receiver_id = self.edge_selected;
+            parent.sender_id = self.selected_drone.id;
             remove_edge();
         }
 
         add_edge => {
-            parent.edge_selected = self.edge_selected;
+            parent.receiver_id = self.edge_selected;
+            parent.sender_id = self.selected_drone.id;
             add_edge();
         }
 

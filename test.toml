@@ -10,12 +10,12 @@ pdr = 0.03
 
 [[drones]]
 id = 2
-connected_drone_ids = [0]
+connected_drone_ids = [0, 20]
 pdr = 0.02
 
 [[clients]]
 id = 20
-connected_drone_ids = [1]
+connected_drone_ids = [1, 2]
 
 [[servers]]
 id = 30

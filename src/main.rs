@@ -19,6 +19,13 @@ use wg_internal::network::NodeId;
 use wg_internal::packet::Packet;
 use network_initializer::types::channel::Channel;
 
+// // Define the ClientServer struct
+// struct ClientServer {
+//     drones_adjacent: slint::ModelRc<slint::VecModel<i32>>,
+//     drones_not_adjacent: slint::ModelRc<slint::VecModel<i32>>,
+//     id: i32,
+// }
+
 fn check_edges(edges: &Vec<Edge>, id1: i32, id2: i32) -> bool {
     for edge in edges {
         if (edge.id1 == id1 && edge.id2 == id2) || (edge.id1 == id2 && edge.id2 == id1) {
@@ -51,7 +58,6 @@ fn populate_drones(parsed_drones: &Vec<ParsedDrone>, edges: &mut Vec<Edge>) -> V
         drones.push(Drone {
             adjent: slint::ModelRc::new(slint::VecModel::from(adjent)),
             not_adjacent: slint::ModelRc::new(slint::VecModel::from(not_adj)),
-            crashed: false,
             id: drone.id as i32,
             pdr: drone.pdr,
         });
@@ -59,8 +65,8 @@ fn populate_drones(parsed_drones: &Vec<ParsedDrone>, edges: &mut Vec<Edge>) -> V
     return drones;
 }
 
-fn populate_clients(parsed_client: &Vec<ParsedClient>, edges: &mut Vec<Edge>, parsed_drones: &Vec<ParsedDrone>)-> Vec<Drone>{
-    let mut clients: Vec<Drone> = vec![];
+fn populate_clients(parsed_client: &Vec<ParsedClient>, edges: &mut Vec<Edge>, parsed_drones: &Vec<ParsedDrone>)-> Vec<ClientServer>{
+    let mut clients: Vec<ClientServer> = vec![];
     for client in parsed_client{
         let mut adjent = vec![];
         for adj in &client.connected_drone_ids {
@@ -80,20 +86,18 @@ fn populate_clients(parsed_client: &Vec<ParsedClient>, edges: &mut Vec<Edge>, pa
             }
         }
 
-        clients.push(Drone {
-            adjent: slint::ModelRc::new(slint::VecModel::from(adjent)),
-            not_adjacent: slint::ModelRc::new(slint::VecModel::from(not_adj)),
-            crashed: false,
+        clients.push(ClientServer {
+            drones_adjacent: slint::ModelRc::new(slint::VecModel::from(adjent)),
+            drones_not_adjacent: slint::ModelRc::new(slint::VecModel::from(not_adj)),
             id: client.id as i32,
-            pdr: -1.0,
         });
     }
     return clients;
 }
 
 
-fn populate_servers(parsed_server: &Vec<ParsedServer>, edges: &mut Vec<Edge>, parsed_drones: &Vec<ParsedDrone>)-> Vec<Drone>{
-    let mut servers: Vec<Drone> = vec![];
+fn populate_servers(parsed_server: &Vec<ParsedServer>, edges: &mut Vec<Edge>, parsed_drones: &Vec<ParsedDrone>)-> Vec<ClientServer>{
+    let mut servers: Vec<ClientServer> = vec![];
     for server in parsed_server{
         let mut adjent = vec![];
         for adj in &server.connected_drone_ids {
@@ -113,12 +117,14 @@ fn populate_servers(parsed_server: &Vec<ParsedServer>, edges: &mut Vec<Edge>, pa
             }
         }
 
-        servers.push(Drone {
-            adjent: slint::ModelRc::new(slint::VecModel::from(adjent)),
-            not_adjacent: slint::ModelRc::new(slint::VecModel::from(not_adj)),
-            crashed: false,
+        // println!("server_adj: {:?}", adjent);
+        // println!("server_adj: {:?}", not_adj);
+
+
+        servers.push(ClientServer {
+            drones_adjacent: slint::ModelRc::new(slint::VecModel::from(adjent)),
+            drones_not_adjacent: slint::ModelRc::new(slint::VecModel::from(not_adj)),
             id: server.id as i32,
-            pdr: -1.0,
         });
     }
     return servers;
@@ -207,13 +213,15 @@ fn main() -> Result<(), slint::PlatformError> {
                             println!("[SIMULATION CONTROLLER] PacketSent {:?}", packet);
                             match weak.upgrade_in_event_loop(move |window| 
                                 {let messages : ModelRc<Message> = window.get_messages();
-                                if let Some(vec_model) = messages.as_any().downcast_ref::<VecModel<Message>>() {
-                                    vec_model.push(Message{id1: packet.routing_header.hops[packet.routing_header.hop_index-1] as i32 , id2: packet.routing_header.hops[packet.routing_header.hop_index] as i32, msg_type:0});
-                                }else{
-                                    window.set_messages(slint::ModelRc::new(slint::VecModel::from(vec![
-                                        Message { id1: packet.routing_header.hops[packet.routing_header.hop_index-1] as i32 , id2: packet.routing_header.hops[packet.routing_header.hop_index] as i32, msg_type:0},
-                                    ])));
-                                }
+                                    if packet.routing_header.hops.len() > 1{
+                                        if let Some(vec_model) = messages.as_any().downcast_ref::<VecModel<Message>>() {
+                                            vec_model.push(Message{id1: packet.routing_header.hops[packet.routing_header.hop_index] as i32 , id2: packet.routing_header.hops[packet.routing_header.hop_index+1] as i32, msg_type:0});
+                                        }else{
+                                            window.set_messages(slint::ModelRc::new(slint::VecModel::from(vec![
+                                                Message { id1: packet.routing_header.hops[packet.routing_header.hop_index] as i32 , id2: packet.routing_header.hops[packet.routing_header.hop_index+1] as i32, msg_type:0},
+                                            ])));
+                                        }
+                                    }
                                 }
                             ){
                                 Ok(_) => {
@@ -597,8 +605,8 @@ fn main() -> Result<(), slint::PlatformError> {
     main_window.on_remove_edge(move || {
         println!("[SIMULATION CONTROLLER] REMOVE EDGE");
         if let Some(window) = weak.upgrade() {
-            let id_1 = window.get_id_selected_drone();
-            let id_2 = window.get_edge_selected();
+            let id_1 = window.get_sender_id();
+            let id_2 = window.get_receiver_id();
 
 
             // COMMUNICATE REMOTION TO DRONES to id_1
@@ -701,6 +709,9 @@ fn main() -> Result<(), slint::PlatformError> {
                     }
                 }
             }
+
+            // TODO : - sistemare rimozione e aggiunta clients e server con le altre strutture -> capire se fare altra callback separata per evitare scazzi
+            //        - sisitemare struttura dati drone e aggiungere bottoni per connessioni client server ( o forsee no?)
         }
     });
 
@@ -711,8 +722,8 @@ fn main() -> Result<(), slint::PlatformError> {
     main_window.on_add_edge(move || {
         println!("[SIMULATION CONTROLLER ] ADD EDGE");
         if let Some(window) = weak.upgrade() {
-            let id_1 = window.get_id_selected_drone();
-            let id_2 = window.get_edge_selected();
+            let id_1 = window.get_sender_id();
+            let id_2 = window.get_receiver_id();
 
             let mut sender_id_1: Option<Sender<Packet>> = None;
             let mut sender_id_2: Option<Sender<Packet>> = None;
@@ -860,13 +871,6 @@ fn main() -> Result<(), slint::PlatformError> {
 
     let _res = main_window.run();
 
-    // println!("Set config to :{:?} ", general_receiver);
     Ok(())
 }
 
-// TODO:
-// - Handle ControllerShortcut(packet) message
-// - Add sending -> RemoveSender(NodeId),
-//               -> AddSender(NodeId, Sender<Packet>),
-//               -> SetPacketDropRate(f32),
-// both graphically and from the controller
