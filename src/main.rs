@@ -20,6 +20,7 @@ fn check_edges(edges: &Vec<Edge>, id1: i32, id2: i32) -> bool {
     return false;
 }
 
+// POPULATE drones, clients and servers
 fn populate_drones(parsed_drones: &Vec<ParsedDrone>, edges: &mut Vec<Edge>) -> Vec<Drone> {
     let mut drones: Vec<Drone> = vec![];
     for drone in parsed_drones {
@@ -80,7 +81,6 @@ fn populate_clients(parsed_client: &Vec<ParsedClient>, edges: &mut Vec<Edge>, pa
     return clients;
 }
 
-
 fn populate_servers(parsed_server: &Vec<ParsedServer>, edges: &mut Vec<Edge>, parsed_drones: &Vec<ParsedDrone>)-> Vec<ClientServer>{
     let mut servers: Vec<ClientServer> = vec![];
     for server in parsed_server{
@@ -102,10 +102,6 @@ fn populate_servers(parsed_server: &Vec<ParsedServer>, edges: &mut Vec<Edge>, pa
             }
         }
 
-        // println!("server_adj: {:?}", adjent);
-        // println!("server_adj: {:?}", not_adj);
-
-
         servers.push(ClientServer {
             drones_adjacent: slint::ModelRc::new(slint::VecModel::from(adjent)),
             drones_not_adjacent: slint::ModelRc::new(slint::VecModel::from(not_adj)),
@@ -113,6 +109,32 @@ fn populate_servers(parsed_server: &Vec<ParsedServer>, edges: &mut Vec<Edge>, pa
         });
     }
     return servers;
+}
+
+// send drone commands 
+fn send_drone_command(senders: &Arc<Mutex<Option<HashMap<u8, Sender<DroneCommand>>>>>, id:u8, command: Box<DroneCommand>)->Result<(), String>{
+    if let Some(ref s) = *senders.lock().unwrap() {
+        // println!("Senders map {:?}", s);
+        if let Some(sender) = s.get(&(id as u8)) {
+            let res = sender.send(*command);
+            match res {
+                Ok(_) => {
+                    // println!("DroneCommand sent to drone {}", id);
+                    return Ok(());
+                }
+                Err(e) => {
+                    let error = format!("Error sending DroneCommand to drone {}: {:?}", id, e);
+                    return Err(error);
+                }
+            }
+        } else {
+            let error = format!("No sender for drone {}", id);
+            return Err(error);
+        }
+    } else {
+        let error = format!("Empty senders map");
+        return Err(error);
+    }
 }
 
 
@@ -139,7 +161,7 @@ fn main() -> Result<(), slint::PlatformError> {
         let drones = populate_drones(&nodes.0, &mut edges);
         let servers = populate_servers(&nodes.2, &mut edges, &nodes.0);
 
-        println!("setting instances");
+        println!("[SIMULATION CONTROLLER] initilializing nodes");
         let weak = main_window.as_weak();
         if let Some(window) = weak.upgrade() {
             window.set_edges(slint::ModelRc::new(slint::VecModel::from(edges)));
@@ -247,238 +269,7 @@ fn main() -> Result<(), slint::PlatformError> {
         }
     });
 
-    main_window.on_select_file(move || {
-        // logger.log_info("file selection");
-        // let file = FileDialog::new().pick_file();
-        // if let Some(mut path) = file {
-        //     let path_string = <OsString as Clone>::clone(&path.as_mut_os_string()).into_string();
-        //     if let Ok(path_string) = path_string {
-        //         println!("Selected file: {}", path_string);
-
-        //         // before initilizing check kill all the nodes sending a crash command
-        //         if let Some(window) = weak.upgrade() {
-        //             let drones = window.get_drones();
-        //             let clients = window.get_clients();
-        //             let servers = window.get_servers();
-
-        //             for drone in drones.iter() {
-        //                 if let Some(ref mut s) = *senders2.lock().unwrap() {
-        //                     if let Some(sender) = s.get(&(drone.id as u8)) {
-        //                         if drone.crashed {
-        //                             continue;
-        //                         }
-        //                         let res = sender.send(DroneCommand::Crash);
-        //                         match res {
-        //                             Ok(_) => {
-        //                                 println!("Crash command sent to drone {}", drone.id);
-        //                             }
-        //                             Err(e) => {
-        //                                 println!(
-        //                                     "Error sending crash command to drone {}: {:?}",
-        //                                     drone.id, e
-        //                                 );
-        //                             }
-        //                         }
-        //                     } else {
-        //                         println!("No sender for drone {}", drone.id);
-        //                     }
-        //                 } else {
-        //                     println!("No senders map loaded");
-        //                 }
-        //             }
-
-        //             for client in clients.iter() {
-        //                 if let Some(ref mut s) = *senders2.lock().unwrap() {
-        //                     if let Some(sender) = s.get(&(client.id as u8)) {
-        //                         let res = sender.send(DroneCommand::Crash);
-        //                         match res {
-        //                             Ok(_) => {
-        //                                 println!("Crash command sent to drone {}", client.id);
-        //                             }
-        //                             Err(e) => {
-        //                                 println!(
-        //                                     "Error sending crash command to drone {}: {:?}",
-        //                                     client.id, e
-        //                                 );
-        //                             }
-        //                         }
-        //                     } else {
-        //                         println!("No sender for drone {}", client.id);
-        //                     }
-        //                 } else {
-        //                     println!("No senders map loaded");
-        //                 }
-        //             }
-
-        //             for server in servers.iter() {
-        //                 if let Some(ref mut s) = *senders2.lock().unwrap() {
-        //                     if let Some(sender) = s.get(&(server.id as u8)) {
-        //                         let res = sender.send(DroneCommand::Crash);
-        //                         match res {
-        //                             Ok(_) => {
-        //                                 println!("Crash command sent to drone {}", server.id);
-        //                             }
-        //                             Err(e) => {
-        //                                 println!(
-        //                                     "Error sending crash command to drone {}: {:?}",
-        //                                     server.id, e
-        //                                 );
-        //                             }
-        //                         }
-        //                     } else {
-        //                         println!("No sender for drone {}", server.id);
-        //                     }
-        //                 } else {
-        //                     println!("No senders map loaded");
-        //                 }
-        //             }
-
-        //             window.set_drones(slint::ModelRc::new(slint::VecModel::from(vec![])));
-        //             window.set_clients(slint::ModelRc::new(slint::VecModel::from(vec![])));
-        //             window.set_servers(slint::ModelRc::new(slint::VecModel::from(vec![])));
-        //             window.set_edges(slint::ModelRc::new(slint::VecModel::from(vec![])));
-
-        //             // reset configuration and decomment line
-        //             let lock_result = network_initializer1.lock();
-        //             if let Ok(mut guard) = lock_result {
-        //                 if let Ok(network) = &mut *guard {
-        //                     // network.stop_simulation();
-        //                     println!("[SIMULATION-CONTROLLER]Error: Failed to acquire lock");
-        //                 } else {
-        //                     println!("[SIMULATION-CONTROLLER]Error: Failed to acquire lock");
-        //                 }
-        //             }
-
-        //             // enforce new configuration
-        //             *network_initializer1.lock().unwrap() =
-        //                 NetworkInitializer::new(Some(path_string.as_str()));
-        //             let mut config = network_initializer1.lock().unwrap();
-
-        //             if let Ok(ref mut c) = *config {
-        //                 *general_receiver1.lock().unwrap() = Some(c.get_controller_recv());
-        //                 println!("Rec directly from config {:?}", c.get_controller_recv());
-        //                 *senders.lock().unwrap() = Some(c.get_controller_senders());
-        //                 println!(
-        //                     "Senders directly from config {:?}",
-        //                     c.get_controller_senders()
-        //                 );
-        //                 println!("Sender in loading {:?}", senders.lock().unwrap());
-
-        //                 *channels.lock().unwrap() = Some(c.get_channels());
-
-        //                 let from_network_initializer = c.get_nodes();
-
-        //                 let mut edges: Vec<Edge> = vec![];
-
-        //                 let mut clients: Vec<Drone> = vec![];
-        //                 for drone in from_network_initializer.1 {
-        //                     let mut adjent = vec![];
-        //                     for adj in &drone.connected_drone_ids {
-        //                         adjent.push(*adj as i32);
-        //                         if !check_edges(&edges, drone.id as i32, *adj as i32) {
-        //                             edges.push(Edge {
-        //                                 id1: drone.id as i32,
-        //                                 id2: *adj as i32,
-        //                             });
-        //                         }
-        //                     }
-
-        //                     let mut not_adj = vec![];
-        //                     for d in from_network_initializer.0 {
-        //                         if !adjent.contains(&(d.id as i32)) && d.id != drone.id {
-        //                             not_adj.push(d.id as i32);
-        //                         }
-        //                     }
-
-        //                     clients.push(Drone {
-        //                         adjent: slint::ModelRc::new(slint::VecModel::from(adjent)),
-        //                         not_adjacent: slint::ModelRc::new(slint::VecModel::from(not_adj)),
-        //                         crashed: false,
-        //                         id: drone.id as i32,
-        //                         pdr: 0.0,
-        //                     });
-        //                 }
-
-        //                 let mut drones: Vec<Drone> = vec![];
-        //                 for drone in from_network_initializer.0 {
-        //                     let mut adjent = vec![];
-        //                     for adj in &drone.connected_drone_ids {
-        //                         adjent.push(*adj as i32);
-        //                         if !check_edges(&edges, drone.id as i32, *adj as i32) {
-        //                             edges.push(Edge {
-        //                                 id1: drone.id as i32,
-        //                                 id2: *adj as i32,
-        //                             });
-        //                         }
-        //                     }
-
-        //                     let mut not_adj = vec![];
-        //                     for d in from_network_initializer.0 {
-        //                         if !adjent.contains(&(d.id as i32)) && d.id != drone.id {
-        //                             not_adj.push(d.id as i32);
-        //                         }
-        //                     }
-        //                     // println!("HERE ADJ: {:?}", adjent);
-        //                     // println!("HERE NOT_ADJ: {:?}", not_adj);
-        //                     drones.push(Drone {
-        //                         adjent: slint::ModelRc::new(slint::VecModel::from(adjent)),
-        //                         not_adjacent: slint::ModelRc::new(slint::VecModel::from(not_adj)),
-        //                         crashed: false,
-        //                         id: drone.id as i32,
-        //                         pdr: drone.pdr,
-        //                     });
-        //                 }
-
-        //                 let mut servers: Vec<Drone> = vec![];
-        //                 for drone in from_network_initializer.2 {
-        //                     let mut adjent = vec![];
-        //                     for adj in &drone.connected_drone_ids {
-        //                         adjent.push(*adj as i32);
-        //                         if !check_edges(&edges, drone.id as i32, *adj as i32) {
-        //                             edges.push(Edge {
-        //                                 id1: drone.id as i32,
-        //                                 id2: *adj as i32,
-        //                             });
-        //                         }
-        //                     }
-
-        //                     let mut not_adj = vec![];
-        //                     for d in from_network_initializer.0 {
-        //                         if !adjent.contains(&(d.id as i32)) && d.id != drone.id {
-        //                             not_adj.push(d.id as i32);
-        //                         }
-        //                     }
-
-        //                     // TODO : add non adj
-        //                     servers.push(Drone {
-        //                         adjent: slint::ModelRc::new(slint::VecModel::from(adjent)),
-        //                         not_adjacent: slint::ModelRc::new(slint::VecModel::from(not_adj)),
-        //                         crashed: false,
-        //                         id: drone.id as i32,
-        //                         pdr: 0.0,
-        //                     });
-        //                 }
-
-        //                 window.set_edges(slint::ModelRc::new(slint::VecModel::from(edges)));
-
-        //                 window.set_clients(slint::ModelRc::new(slint::VecModel::from(clients)));
-        //                 window.set_drones(slint::ModelRc::new(slint::VecModel::from(drones)));
-        //                 window.set_servers(slint::ModelRc::new(slint::VecModel::from(servers)));
-        //                 window.set_messages(slint::ModelRc::new(slint::VecModel::from(vec![
-        //                     Message { id1: 0, id2: 2 , msg_type: 0},
-        //                     Message { id1: 20, id2: 1 , msg_type: 1},
-        //                 ])));
-                        
-        //             }
-        //         }
-        //     } else {
-        //         println!("Error converting path to string");
-        //     }
-        // } else {
-        //     println!("No file selected\nTry again");
-        // }
-    });
-
+    // callback called when crashing a drone
     let weak = main_window.as_weak();
     let senders = sc_senders.clone();
     let channels_ = channels.clone();
@@ -487,23 +278,13 @@ fn main() -> Result<(), slint::PlatformError> {
             let id = window.get_id_selected_drone();
 
             // SEND COMMAND TO DRONE
-            if let Some(ref mut s) = *senders.lock().unwrap() {
-                println!("Senders map {:?}", s);
-                if let Some(sender) = s.get(&(id as u8)) {
-                    let res = sender.send(DroneCommand::Crash);
-                    match res {
-                        Ok(_) => {
-                            println!("Crash command sent to drone {}", id);
-                        }
-                        Err(e) => {
-                            println!("Error sending crash command to drone {}: {:?}", id, e);
-                        }
-                    }
-                } else {
-                    println!("No sender for drone {}", id);
+            match send_drone_command(&senders, id as u8, Box::new(DroneCommand::Crash)){
+                Ok(_) => {
+                    println!("[SIMULATION CONTROLLER] Drone {} crashed", id);
                 }
-            } else {
-                println!("No senders map loaded");
+                Err(e) => {
+                    println!("[SIMULATION CONTROLLER] Error crashing drone {}: {:?}", id, e);
+                }
             }
 
             // REMOVE ALL EDGES communicating with it
@@ -594,45 +375,23 @@ fn main() -> Result<(), slint::PlatformError> {
             let id_2 = window.get_receiver_id();
 
 
-            // COMMUNICATE REMOTION TO DRONES to id_1
-            if let Some(ref mut s) = *senders.lock().unwrap() {
-                println!("Senders map {:?}", s);
-                if let Some(sender) = s.get(&(id_1 as u8)) {
-                    let res = sender.send(DroneCommand::RemoveSender(id_2 as u8));
-                    match res {
-                        Ok(_) => {
-                            println!("RemoveSender command sent to drone {} to remove {}", id_1, id_2);
-                        }
-                        Err(e) => {
-                            println!("Error sending RemoveSender command to drone {}: {:?}", id_1, e);
-                        }
-                    }
-                } else {
-                    println!("No sender for drone {}", id_1);
+            // COMMUNICATE REMOTION TO DRONES to id_1 and id_2
+            match send_drone_command(&senders, id_1 as u8, Box::new(DroneCommand::RemoveSender(id_2 as u8))){
+                Ok(_) => {
+                    println!("[SIMULATION CONTROLLER] Drone {} removed edge to drone {}", id_1, id_2);
                 }
-            } else {
-                println!("No senders map loaded");
+                Err(e) => {
+                    println!("[SIMULATION CONTROLLER] Error removing edge from drone {} to drone {}: {:?}", id_1, id_2, e);
+                }
             }
 
-            // COMMUNICATE REMOTION TO DRONES to id_2
-            if let Some(ref mut s) = *senders.lock().unwrap() {
-                println!("Senders map {:?}", s);
-                if let Some(sender) = s.get(&(id_2 as u8)) {
-                    let res = sender.send(DroneCommand::RemoveSender(id_1 as u8));
-                    match res {
-                        Ok(_) => {
-                            println!("RemoveSender command sent to drone {} to remove {}", id_2, id_1);
-                        }
-                        Err(e) => {
-                            println!("Error sending RemoveSender command to drone {}: {:?}", id_2, e);
-                        }
-                    }
-
-                } else {
-                    println!("No sender for drone {}", id_2);
+            match send_drone_command(&senders, id_2 as u8, Box::new(DroneCommand::RemoveSender(id_1 as u8))){
+                Ok(_) => {
+                    println!("[SIMULATION CONTROLLER] Drone {} removed edge to drone {}", id_2, id_1);
                 }
-            } else {
-                println!("No senders map loaded");
+                Err(e) => {
+                    println!("[SIMULATION CONTROLLER] Error removing edge from drone {} to drone {}: {:?}", id_2, id_1, e);
+                }
             }
 
             // REMOVE EDGE
@@ -706,46 +465,23 @@ fn main() -> Result<(), slint::PlatformError> {
             let id_1 = window.get_sender_id();
             let id_2 = window.get_receiver_id();
 
-
-            // COMMUNICATE REMOTION TO DRONES to id_1
-            if let Some(ref mut s) = *senders.lock().unwrap() {
-                println!("Senders map {:?}", s);
-                if let Some(sender) = s.get(&(id_1 as u8)) {
-                    let res = sender.send(DroneCommand::RemoveSender(id_2 as u8));
-                    match res {
-                        Ok(_) => {
-                            println!("RemoveSender command sent to drone {} to remove {}", id_1, id_2);
-                        }
-                        Err(e) => {
-                            println!("Error sending RemoveSender command to drone {}: {:?}", id_1, e);
-                        }
-                    }
-                } else {
-                    println!("No sender for drone {}", id_1);
+            // COMMUNICATE REMOTION TO DRONES to id_1 and id_2
+            match send_drone_command(&senders, id_1 as u8, Box::new(DroneCommand::RemoveSender(id_2 as u8))){
+                Ok(_) => {
+                    println!("[SIMULATION CONTROLLER] Drone {} removed edge to drone {}", id_1, id_2);
                 }
-            } else {
-                println!("No senders map loaded");
+                Err(e) => {
+                    println!("[SIMULATION CONTROLLER] Error removing edge from drone {} to drone {}: {:?}", id_1, id_2, e);
+                }
             }
 
-            // COMMUNICATE REMOTION TO DRONES to id_2
-            if let Some(ref mut s) = *senders.lock().unwrap() {
-                println!("Senders map {:?}", s);
-                if let Some(sender) = s.get(&(id_2 as u8)) {
-                    let res = sender.send(DroneCommand::RemoveSender(id_1 as u8));
-                    match res {
-                        Ok(_) => {
-                            println!("RemoveSender command sent to drone {} to remove {}", id_2, id_1);
-                        }
-                        Err(e) => {
-                            println!("Error sending RemoveSender command to drone {}: {:?}", id_2, e);
-                        }
-                    }
-
-                } else {
-                    println!("No sender for drone {}", id_2);
+            match send_drone_command(&senders, id_2 as u8, Box::new(DroneCommand::RemoveSender(id_1 as u8))){
+                Ok(_) => {
+                    println!("[SIMULATION CONTROLLER] Drone {} removed edge to drone {}", id_2, id_1);
                 }
-            } else {
-                println!("No senders map loaded");
+                Err(e) => {
+                    println!("[SIMULATION CONTROLLER] Error removing edge from drone {} to drone {}: {:?}", id_2, id_1, e);
+                }
             }
 
             // REMOVE EDGE
@@ -851,48 +587,31 @@ fn main() -> Result<(), slint::PlatformError> {
             }
 
 
-            // COMMUNICATE ADDITION TO DRONES to id_1
-            if let Some(ref mut s) = *senders.lock().unwrap() {
-                println!("Senders map {:?}", s);
-                if let Some(sender) = s.get(&(id_1 as u8)) {
-                    if let Some(s_id_2)= sender_id_2{
-                    let res = sender.send(DroneCommand::AddSender(id_2 as u8, s_id_2)); 
-                    match res {
-                        Ok(_) => {
-                            println!("AddSender command sent to drone {} to add {}", id_1, id_2);
-                        }
-                        Err(e) => {
-                            println!("Error sending AddSender command to drone {}: {:?}", id_1, e);
-                        }
+            // COMMUNICATE ADDITION TO DRONES to id_1 and id_2
+            if let Some(s_id_2)= sender_id_2{
+                match send_drone_command(&senders, id_1 as u8, Box::new(DroneCommand::AddSender(id_2 as u8, s_id_2))){
+                    Ok(_) => {
+                        println!("[SIMULATION CONTROLLER] Drone {} add edge to drone {}", id_1, id_2);
                     }
-                } else {
-                    println!("No sender for drone {}", id_1);
+                    Err(e) => {
+                        println!("[SIMULATION CONTROLLER] Error adding edge from drone {} to drone {}: {:?}", id_1, id_2, e);
+                    }
                 }
-            }
             } else {
-                println!("No senders map loaded");
+                println!("[SIMULATION CONTROLLER] No sender for drone {} to add", id_2);
             }
 
-            // COMMUNICATE ADDITION TO DRONES to id_2
-            if let Some(ref mut s) = *senders.lock().unwrap() {
-                println!("Senders map {:?}", s);
-                if let Some(sender) = s.get(&(id_2 as u8)) {
-                    if let Some(s_id_1)= sender_id_1{
-                    let res = sender.send(DroneCommand::AddSender(id_1 as u8, s_id_1)); 
-                    match res {
-                        Ok(_) => {
-                            println!("AddSender command sent to drone {} to add {}", id_2, id_1);
-                        }
-                        Err(e) => {
-                            println!("Error sending AddSender command to drone {}: {:?}", id_2, e);
-                        }
+            if let Some(s_id_1)= sender_id_1{
+                match send_drone_command(&senders, id_2 as u8, Box::new(DroneCommand::AddSender(id_1 as u8, s_id_1))){
+                    Ok(_) => {
+                        println!("[SIMULATION CONTROLLER] Drone {} add edge to drone {}", id_2, id_1);
                     }
-                } else {
-                    println!("No sender for drone {}", id_2);
+                    Err(e) => {
+                        println!("[SIMULATION CONTROLLER] Error adding edge from drone {} to drone {}: {:?}", id_2, id_1, e);
+                    }
                 }
-            }
             } else {
-                println!("No senders map loaded");
+                println!("[SIMULATION CONTROLLER] No sender for drone {} to add", id_1);
             }
 
             // ADD EDGE
@@ -977,48 +696,31 @@ fn main() -> Result<(), slint::PlatformError> {
             }
 
 
-            // COMMUNICATE ADDITION TO DRONES to id_1
-            if let Some(ref mut s) = *senders.lock().unwrap() {
-                println!("Senders map {:?}", s);
-                if let Some(sender) = s.get(&(id_1 as u8)) {
-                    if let Some(s_id_2)= sender_id_2{
-                    let res = sender.send(DroneCommand::AddSender(id_2 as u8, s_id_2)); 
-                    match res {
-                        Ok(_) => {
-                            println!("AddSender command sent to drone {} to add {}", id_1, id_2);
-                        }
-                        Err(e) => {
-                            println!("Error sending AddSender command to drone {}: {:?}", id_1, e);
-                        }
+            // COMMUNICATE ADDITION TO DRONES to id_1 and id_2
+            if let Some(s_id_2)= sender_id_2{
+                match send_drone_command(&senders, id_1 as u8, Box::new(DroneCommand::AddSender(id_2 as u8, s_id_2))){
+                    Ok(_) => {
+                        println!("[SIMULATION CONTROLLER] Node with id {} add edge to node with id {}", id_1, id_2);
                     }
-                } else {
-                    println!("No sender for drone {}", id_1);
+                    Err(e) => {
+                        println!("[SIMULATION CONTROLLER] Error adding edge from node with id {} to node with id {}: {:?}", id_1, id_2, e);
+                    }
                 }
-            }
             } else {
-                println!("No senders map loaded");
+                println!("[SIMULATION CONTROLLER] No sender for node with id {} to add", id_2);
             }
 
-            // COMMUNICATE ADDITION TO DRONES to id_2
-            if let Some(ref mut s) = *senders.lock().unwrap() {
-                println!("Senders map {:?}", s);
-                if let Some(sender) = s.get(&(id_2 as u8)) {
-                    if let Some(s_id_1)= sender_id_1{
-                    let res = sender.send(DroneCommand::AddSender(id_1 as u8, s_id_1)); 
-                    match res {
-                        Ok(_) => {
-                            println!("AddSender command sent to drone {} to add {}", id_2, id_1);
-                        }
-                        Err(e) => {
-                            println!("Error sending AddSender command to drone {}: {:?}", id_2, e);
-                        }
+            if let Some(s_id_1)= sender_id_1{
+                match send_drone_command(&senders, id_2 as u8, Box::new(DroneCommand::AddSender(id_1 as u8, s_id_1))){
+                    Ok(_) => {
+                        println!("[SIMULATION CONTROLLER] Node with id {} add edge to node with id {}", id_2, id_1);
                     }
-                } else {
-                    println!("No sender for drone {}", id_2);
+                    Err(e) => {
+                        println!("[SIMULATION CONTROLLER] Error adding edge from node with id {} to node with id {}: {:?}", id_2, id_1, e);
+                    }
                 }
-            }
             } else {
-                println!("No senders map loaded");
+                println!("[SIMULATION CONTROLLER] No sender for node with id {} to add", id_1);
             }
 
             // ADD EDGE
@@ -1096,23 +798,13 @@ fn main() -> Result<(), slint::PlatformError> {
             let id = window.get_id_selected_drone();
             let new_pdr = window.get_new_pdr();
 
-            if let Some(ref mut s) = *senders.lock().unwrap() {
-                println!("Senders map {:?}", s);
-                if let Some(sender) = s.get(&(id as u8)) {
-                    let res = sender.send(DroneCommand::SetPacketDropRate(new_pdr)); 
-                    match res {
-                        Ok(_) => {
-                            println!("SentPacketDropRate command sent to drone {}", id);
-                        }
-                        Err(e) => {
-                            println!("Error sending SentPacketDropRate command to drone {}: {:?}", id, e);
-                        }
-                    }
-                } else {
-                    println!("No sender for drone {}", id);
+            match send_drone_command(&senders, id as u8, Box::new(DroneCommand::SetPacketDropRate(new_pdr))){
+                Ok(_) => {
+                    println!("[SIMULATION CONTROLLER] Drone {} pdr changed to {}", id, new_pdr);
                 }
-            } else {
-                println!("No senders map loaded");
+                Err(e) => {
+                    println!("[SIMULATION CONTROLLER] Error changing drone {} pdr to {}: {:?}", id, new_pdr, e);
+                }
             }
         }  
     });
