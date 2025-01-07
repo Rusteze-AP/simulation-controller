@@ -144,7 +144,7 @@ component LeftMenu inherits GridLayout {
 }
 
 export component RightMenu inherits Window{
-    callback crash_drone();
+    callback crash();
     callback reactivate_drone();
     callback remove_edge();
     callback add_edge();
@@ -188,7 +188,7 @@ export component RightMenu inherits Window{
                 height: 50px;
 
                 clicked => {
-                    crash_drone();
+                    crash();
                 }
             }
         }
@@ -264,10 +264,9 @@ export component RightMenu inherits Window{
 export component MainWindow inherits Window {
     callback open_right_window;
     callback select_file;
-    callback crash_drone();
     callback reactivate_drone();
     callback clone_file();
-    callback remove_edges();
+    callback crash();
     callback remove_edge();
     callback add_edge();
     callback remove_message();
@@ -308,8 +307,8 @@ export component MainWindow inherits Window {
         width: 64px;
         height: 64px;
         // circular positioning
-        x: parent.width/2.15 + (parent.height / 3) * cos(2 * 1rad * 3.14159 * i /10) + (self.width / 2);
-        y: parent.height/2.5 +(parent.height / 3) * sin(2 * 1rad* 3.14159 * i / 10) + (self.height / 3);
+        x: parent.width/2.15 + (parent.height / 3) * cos(2 * 1rad * 3.14159 * drone.id /10) + (self.width / 2);
+        y: parent.height/2.5 +(parent.height / 3) * sin(2 * 1rad* 3.14159 * drone.id / 10) + (self.height / 3);
         label_id: "Drone" + drone.id;
         background: drones[i].crashed ? #65839b4e : #3960D5;
         visible: drones[i].crashed ? false : true;
@@ -367,11 +366,8 @@ export component MainWindow inherits Window {
         label_id: "drone" + id_selected_drone;
         selected_drone: drones[id_selected_drone];
 
-        crash_drone => {
-            if !drones[id_selected_drone].crashed{
-                drones[id_selected_drone].crashed = true;
-                remove_edges();
-            }
+        crash() => {
+            crash();
         }
 
         reactivate_drone => {

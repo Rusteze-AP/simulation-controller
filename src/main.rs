@@ -486,46 +486,109 @@ fn main() -> Result<(), slint::PlatformError> {
         // }
     });
 
-    main_window.on_remove_edges(move || {
-        // if let Some(window) = weak1.upgrade() {
-        //     let id = window.get_id_selected_drone();
-        //     if let Some(ref mut s) = *senders1.lock().unwrap() {
-        //         println!("Senders map {:?}", s);
-        //         if let Some(sender) = s.get(&(id as u8)) {
-        //             let res = sender.send(DroneCommand::Crash);
-        //             match res {
-        //                 Ok(_) => {
-        //                     println!("Crash command sent to drone {}", id);
-        //                 }
-        //                 Err(e) => {
-        //                     println!("Error sending crash command to drone {}: {:?}", id, e);
-        //                 }
-        //             }
-        //         } else {
-        //             println!("No sender for drone {}", id);
-        //         }
-        //     } else {
-        //         println!("No senders map loaded");
-        //     }
+    let weak = main_window.as_weak();
+    let senders = sc_senders.clone();
+    let channels_ = channels.clone();
+    main_window.on_crash(move || {
+        if let Some(window) = weak.upgrade() {
+            let id = window.get_id_selected_drone();
 
-        //     // remove its edges
-        //     println!("[SIMULATION CONTROLLER] REMOVE EDGES");
-        //     let mut edges = window.get_edges();
-        //     let mut edges_new: Vec<Edge> = vec![];
-        //     for edge in edges.iter() {
-        //         if edge.id1 == window.get_id_selected_drone()
-        //             || edge.id2 == window.get_id_selected_drone()
-        //         {
-        //             println!("removed {} {}", edge.id1, edge.id2);
-        //         } else {
-        //             edges_new.push(Edge {
-        //                 id1: edge.id1,
-        //                 id2: edge.id2,
-        //             });
-        //         }
-        //     }
-        //     window.set_edges(slint::ModelRc::new(slint::VecModel::from(edges_new)));
-        // }
+            // SEND COMMAND TO DRONE
+            if let Some(ref mut s) = *senders.lock().unwrap() {
+                println!("Senders map {:?}", s);
+                if let Some(sender) = s.get(&(id as u8)) {
+                    let res = sender.send(DroneCommand::Crash);
+                    match res {
+                        Ok(_) => {
+                            println!("Crash command sent to drone {}", id);
+                        }
+                        Err(e) => {
+                            println!("Error sending crash command to drone {}: {:?}", id, e);
+                        }
+                    }
+                } else {
+                    println!("No sender for drone {}", id);
+                }
+            } else {
+                println!("No senders map loaded");
+            }
+
+            // REMOVE ALL EDGES communicating with it
+            let edges = window.get_edges();
+            let mut i: usize= 0;
+            let mut to_remove: Vec<usize> = vec![];
+            for edge in edges.iter() {
+                if edge.id1 == id || edge.id2 == id{
+                    to_remove.push(i);
+                }
+                i = i+1;
+            }
+
+            for index in to_remove.iter().rev(){
+                if let Some(vec_model) = edges.as_any().downcast_ref::<VecModel<Edge>>() {
+                    vec_model.remove(*index);
+                }else{
+                    println!("problems in downcasting edges");
+                }
+            }
+
+            // REMOVE DRONE from DRONES
+            let drones = window.get_drones();
+            let mut i = 0;
+            for drone in drones.iter() {
+                if drone.id == id {
+                    if let Some(vec_model) = drones.as_any().downcast_ref::<VecModel<Drone>>() {
+                        vec_model.remove(i);
+                    }else{
+                        println!("problems in downcasting drones");
+                    }
+                    break;
+                }
+                i = i+1;
+            }
+
+            // REMOVE ALL ADJACENT of others
+            for drone in drones.iter() {
+                let mut i = 0;
+                for adj in drone.adjent.iter() {
+                    if adj == id {
+                        if let Some(vec_model) = drone.adjent.as_any().downcast_ref::<VecModel<i32>>() {
+                            vec_model.remove(i);
+                        }else{
+                            println!("problems in downcasting adjacent");
+                        }
+                        break;
+                    }
+                    i = i+1;
+                }
+                i = 0;
+                for not_adj in drone.not_adjacent.iter() {
+                    if not_adj == id {
+                        if let Some(vec_model) = drone.not_adjacent.as_any().downcast_ref::<VecModel<i32>>() {
+                            vec_model.remove(i);
+                        }else{
+                            println!("problems in downcasting adjacent");
+                        }
+                        break;
+                    }
+                    i = i+1;
+                }
+            }
+
+            // DROP IT'S CHANNELS from channels and senders
+            if let Some(ref mut channel) = *channels_.lock().unwrap() {
+                channel.remove(&(id as u8));
+            } else {
+                println!("No channels map loaded");
+            }
+            if let Some(ref mut s) = *senders.lock().unwrap() {
+                s.remove(&(id as u8));
+            } else {
+                println!("No senders map loaded");
+            }
+            
+
+        }
     });
 
     // Note: the channels are not removed becuase the connection cannot be deleted if it is the last of the drone
@@ -795,7 +858,7 @@ fn main() -> Result<(), slint::PlatformError> {
         }  
     });
 
-    main_window.run();
+    let _res = main_window.run();
 
     // println!("Set config to :{:?} ", general_receiver);
     Ok(())
