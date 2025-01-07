@@ -3123,7 +3123,7 @@ dependencies = [
  "client",
  "crossbeam",
  "ctrlc",
- "rusteze_drone 0.1.0 (git+ssh://git@github.com/Rusteze-AP/drone.git?branch=main)",
+ "rusteze_drone",
  "serde",
  "server",
  "thiserror 2.0.9",
@@ -4154,18 +4154,7 @@ dependencies = [
 [[package]]
 name = "rusteze_drone"
 version = "0.1.0"
-dependencies = [
- "crossbeam",
- "logger 0.1.0 (git+https://github.com/Rusteze-AP/logger.git?branch=main)",
- "rand",
- "rusteze-tests",
- "wg_internal",
-]
-
-[[package]]
-name = "rusteze_drone"
-version = "0.1.0"
-source = "git+ssh://git@github.com/Rusteze-AP/drone.git?branch=main#d60caff4bc1ff1f97a72615032acc96f6c33089b"
+source = "git+ssh://git@github.com/Rusteze-AP/drone.git?branch=main#d6339fd4cd533b8edfcb3fece4127715fee78102"
 dependencies = [
  "crossbeam",
  "logger 0.1.0 (git+https://github.com/Rusteze-AP/logger.git?branch=main)",
@@ -4505,7 +4494,7 @@ dependencies = [
  "network-initializer",
  "packet_forge 0.1.0 (git+ssh://git@github.com/Rusteze-AP/packet-forge.git?branch=main)",
  "rfd",
- "rusteze_drone 0.1.0",
+ "rusteze_drone",
  "server",
  "slint",
  "slint-build",
