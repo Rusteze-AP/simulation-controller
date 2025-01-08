@@ -5,6 +5,7 @@ struct Drone {
     adjent: [int],
     not_adjacent: [int],
     pdr: float,
+    crashed: bool,
 }
 
 // no connection with other ClientServer because there cannot be a direct connection
@@ -31,7 +32,6 @@ component Drone inherits Rectangle{
 
     height: 64px;
     width: 64px;
-    background: #3960D5;
     border-radius: self.width/2;
     // animate background { duration: 800ms; } //-> MAYBE LATER
 
@@ -321,7 +321,7 @@ export component MainWindow inherits Window {
     in-out property <int> id_selected_client_server : 20;
     in-out property <int> receiver_id;
     in-out property <int> sender_id;
-    in-out property <[Drone]> drones;
+    in-out property <[Drone]> drones; // tenere campo crashed e continuare a fare vedere i droni morti con background diverso e senza gesture
     in-out property <[ClientServer]> clients;
     in-out property <[ClientServer]> servers;
     in-out property <[Edge]> edges;
@@ -356,9 +356,12 @@ export component MainWindow inherits Window {
         x: parent.width/2.15 + (parent.height / 3) * cos(2 * 1rad * 3.14159 * drone.id /10) + (self.width / 2);
         y: parent.height/2.5 +(parent.height / 3) * sin(2 * 1rad* 3.14159 * drone.id / 10) + (self.height / 3);
         label_id: "Drone" + drone.id;
+        background: !drone.crashed ? #3960D5 : #98abe6.mix(#e8e8e9, 0.5 + 0.5* Math.sin(animation-tick()/1s * 1turn));
 
         open_right_window => {
-            id_selected_drone = drone.id;
+            if drone.crashed == false{
+                id_selected_drone = drone.id;
+            }
         }
     }
 
@@ -389,7 +392,6 @@ export component MainWindow inherits Window {
             id_selected_client_server = server.id;
         }
     }
-
 
     // TODO: sistemare posizione, colore, ecc.
     LeftMenu {
@@ -422,24 +424,31 @@ export component MainWindow inherits Window {
 
         crash() => {
             crash();
+            drones[id_selected_drone].crashed = true;
         }
 
         remove_edge => {
-            parent.receiver_id = self.edge_selected;
-            parent.sender_id = self.selected_drone.id;
-            remove_edge();
+            if !drones[id_selected_drone].crashed{
+                parent.receiver_id = self.edge_selected;
+                parent.sender_id = self.selected_drone.id;
+                remove_edge();
+            }
         }
 
         add_edge => {
-            parent.receiver_id = self.edge_selected;
-            parent.sender_id = self.selected_drone.id;
-            add_edge();
+            if !drones[id_selected_drone].crashed{
+                parent.receiver_id = self.edge_selected;
+                parent.sender_id = self.selected_drone.id;
+                add_edge();
+            }
         }
 
         change_pdr() => {
-            new_pdr = self.tmp_pdr;
-            change_pdr();
-            drones[id_selected_drone].pdr = self.tmp_pdr;
+            if !drones[id_selected_drone].crashed{
+                new_pdr = self.tmp_pdr;
+                change_pdr();
+                drones[id_selected_drone].pdr = self.tmp_pdr;
+            }
         }
 
     }

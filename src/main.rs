@@ -8,7 +8,7 @@ use std::thread;
 use wg_internal::controller::{DroneCommand, DroneEvent};
 use wg_internal::network::NodeId;
 use wg_internal::packet::Packet;
-use network_initializer::types::channel::Channel;
+use network_initializer::channel::Channel;
 
 
 fn check_edges(edges: &Vec<Edge>, id1: i32, id2: i32) -> bool {
@@ -46,6 +46,7 @@ fn populate_drones(parsed_drones: &Vec<ParsedDrone>, edges: &mut Vec<Edge>) -> V
             not_adjacent: slint::ModelRc::new(slint::VecModel::from(not_adj)),
             id: drone.id as i32,
             pdr: drone.pdr,
+            crashed: false,
         });
     }
     return drones;
@@ -137,13 +138,12 @@ fn send_drone_command(senders: &Arc<Mutex<Option<HashMap<u8, Sender<DroneCommand
     }
 }
 
-
 fn main() -> Result<(), slint::PlatformError> {
     // let logger = Logger::new(0, true, "SimulationController".to_string());
     let main_window = MainWindow::new()?;
 
     //initial configuration -> default
-    let network_initializer: Arc<Mutex<Result<NetworkInitializer, ConfigError>>> = Arc::new(Mutex::new(NetworkInitializer::new(Some("test1.toml"))));
+    let network_initializer: Arc<Mutex<Result<NetworkInitializer, ConfigError>>> = Arc::new(Mutex::new(NetworkInitializer::new(Some("test3.toml"))));
     let mut sc_receiver: Arc<Mutex<Option<Receiver<DroneEvent>>>> = Arc::new(Mutex::new(None));
     let mut sc_senders: Arc<Mutex<Option<HashMap<NodeId, Sender<DroneCommand>>>>> = Arc::new(Mutex::new(None));
     let mut channels: Arc<Mutex<Option<HashMap<NodeId, Channel<Packet>>>>> = Arc::new(Mutex::new(None));
@@ -222,10 +222,10 @@ fn main() -> Result<(), slint::PlatformError> {
                                 {let messages : ModelRc<Message> = window.get_messages();
                                     if packet.routing_header.hops.len() > 1{
                                         if let Some(vec_model) = messages.as_any().downcast_ref::<VecModel<Message>>() {
-                                            vec_model.push(Message{id1: packet.routing_header.hops[packet.routing_header.hop_index] as i32 , id2: packet.routing_header.hops[packet.routing_header.hop_index+1] as i32, msg_type:0});
+                                            vec_model.push(Message{id1: packet.routing_header.hops[packet.routing_header.hop_index-1] as i32 , id2: packet.routing_header.hops[packet.routing_header.hop_index] as i32, msg_type:0});
                                         }else{
                                             window.set_messages(slint::ModelRc::new(slint::VecModel::from(vec![
-                                                Message { id1: packet.routing_header.hops[packet.routing_header.hop_index] as i32 , id2: packet.routing_header.hops[packet.routing_header.hop_index+1] as i32, msg_type:0},
+                                                Message { id1: packet.routing_header.hops[packet.routing_header.hop_index-1] as i32 , id2: packet.routing_header.hops[packet.routing_header.hop_index] as i32, msg_type:0},
                                             ])));
                                         }
                                     }
@@ -306,22 +306,34 @@ fn main() -> Result<(), slint::PlatformError> {
                 }
             }
 
-            // REMOVE DRONE from DRONES
-            let drones = window.get_drones();
-            let mut i = 0;
-            for drone in drones.iter() {
-                if drone.id == id {
-                    if let Some(vec_model) = drones.as_any().downcast_ref::<VecModel<Drone>>() {
-                        vec_model.remove(i);
-                    }else{
-                        println!("problems in downcasting drones");
-                    }
-                    break;
-                }
-                i = i+1;
-            }
+            // // // REMOVE DRONE from DRONES
+            // // let drones = window.get_drones();
+            // // let mut i = 0;
+            // // for drone in drones.iter() {
+            // //     if drone.id == id {
+            // //         if let Some(vec_model) = drones.as_any().downcast_ref::<VecModel<Drone>>() {
+            // //             vec_model.remove(i);
+            // //         }else{
+            // //             println!("problems in downcasting drones");
+            // //         }
+            // //         break;
+            // //     }
+            // //     i = i+1;
+            // // }
+
+            // // PUT TO CRASHED --> fatto di la
+            // let mut i = 0;
+            // for mut drone in drones.iter() {
+            //     if drone.id == id {
+            //         drone.crashed = true;
+            //         break;
+            //     }
+            //     i = i+1;
+            // }
+
 
             // REMOVE ALL ADJACENT of others
+            let drones = window.get_drones();
             for drone in drones.iter() {
                 let mut i = 0;
                 for adj in drone.adjent.iter() {
@@ -549,10 +561,6 @@ fn main() -> Result<(), slint::PlatformError> {
                     }
                 }
             }
-        
-
-            // TODO : - sistemare rimozione e aggiunta clients e server con le altre strutture -> capire se fare altra callback separata per evitare scazzi
-            //        - sisitemare struttura dati drone e aggiungere bottoni per connessioni client server ( o forsee no?)
         }
     });
 
@@ -816,9 +824,13 @@ fn main() -> Result<(), slint::PlatformError> {
 
 
 
-// TODO: 
-// - chiedere domani -> devo controllare per network partitions?
-// - testing with different comfig files
+// TO DECIDE: 
+// - testing with different config files
 // - controllare tutte cose segnate sul protocollo
 // - vogliamo aggiungere nodi nuovi? come?
-// - vogliamo cambiare la configurazione? come?
+
+// TODO (annina):
+// - aggiungere drone crash grafica ->  OK
+// - change configuration si (implementala)
+// - sarebbbe figo avere controlli network partitions (non necesssario)
+// -  
