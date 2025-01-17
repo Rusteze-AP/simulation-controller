@@ -145,7 +145,7 @@ fn main() -> Result<(), slint::PlatformError> {
     let main_window = MainWindow::new()?;
 
     //initial configuration -> default
-    let network_initializer: Arc<Mutex<Result<NetworkInitializer, ConfigError>>> = Arc::new(Mutex::new(NetworkInitializer::new(Some("test3.toml"))));
+    let network_initializer: Arc<Mutex<Result<NetworkInitializer, ConfigError>>> = Arc::new(Mutex::new(NetworkInitializer::new(Some("test.toml"))));
     let mut sc_receiver: Arc<Mutex<Option<Receiver<DroneEvent>>>> = Arc::new(Mutex::new(None));
     let mut sc_senders: Arc<Mutex<Option<HashMap<NodeId, Sender<DroneCommand>>>>> = Arc::new(Mutex::new(None));
     let mut channels: Arc<Mutex<Option<HashMap<NodeId, Channel<Packet>>>>> = Arc::new(Mutex::new(None));
@@ -346,6 +346,13 @@ fn main() -> Result<(), slint::PlatformError> {
                         }else{
                             println!("problems in downcasting adjacent");
                         }
+
+                        match send_drone_command(&senders, drone.id as u8, Box::new(DroneCommand::RemoveSender(id as u8))){
+                            Ok(_)=>{println!("[SIMULATION CONTROLLER][CRASH] Command sent to remove sender from drone {}", drone.id);},
+                            Err(e)=>{
+                                println!("[SIMULATION CONTROLLER][CRASH] Error removing sender from drone {}: {:?}", drone.id , e);
+                            }
+                        }
                         break;
                     }
                     i = i+1;
@@ -354,6 +361,78 @@ fn main() -> Result<(), slint::PlatformError> {
                 for not_adj in drone.not_adjacent.iter() {
                     if not_adj == id {
                         if let Some(vec_model) = drone.not_adjacent.as_any().downcast_ref::<VecModel<i32>>() {
+                            vec_model.remove(i);
+                        }else{
+                            println!("problems in downcasting adjacent");
+                        }
+                        break;
+                    }
+                    i = i+1;
+                }
+            }
+
+            //same for servers and clients
+            let servers = window.get_servers();
+            for server in servers.iter(){
+                let mut i = 0;
+                for adj in server.drones_adjacent.iter(){
+                    if adj == id{
+                        if let Some(vec_model) = server.drones_adjacent.as_any().downcast_ref::<VecModel<i32>>() {
+                            vec_model.remove(i);
+                        }else{
+                            println!("problems in downcasting adjacent");
+                        }
+
+                        match send_drone_command(&senders, server.id as u8, Box::new(DroneCommand::RemoveSender(id as u8))){
+                            Ok(_)=>{println!("[SIMULATION CONTROLLER][CRASH] Command sent to remove sender from drone {}", server.id);},
+                            Err(e)=>{
+                                println!("[SIMULATION CONTROLLER][CRASH] Error removing sender from drone {}: {:?}", server.id , e);
+                            }
+                        }
+                        break;
+                    }
+                    i = i+1;
+                }
+                i = 0;
+                for not_adj in server.drones_not_adjacent.iter() {
+                    if not_adj == id {
+                        if let Some(vec_model) = server.drones_not_adjacent.as_any().downcast_ref::<VecModel<i32>>() {
+                            vec_model.remove(i);
+                        }else{
+                            println!("problems in downcasting adjacent");
+                        }
+                        break;
+                    }
+                    i = i+1;
+                }
+            }
+
+            //same for servers and clients
+            let clients = window.get_clients();
+            for client in clients.iter(){
+                let mut i = 0;
+                for adj in client.drones_adjacent.iter(){
+                    if adj == id{
+                        if let Some(vec_model) = client.drones_adjacent.as_any().downcast_ref::<VecModel<i32>>() {
+                            vec_model.remove(i);
+                        }else{
+                            println!("problems in downcasting adjacent");
+                        }
+
+                        match send_drone_command(&senders, client.id as u8, Box::new(DroneCommand::RemoveSender(id as u8))){
+                            Ok(_)=>{println!("[SIMULATION CONTROLLER][CRASH] Command sent to remove sender from drone {}", client.id);},
+                            Err(e)=>{
+                                println!("[SIMULATION CONTROLLER][CRASH] Error removing sender from drone {}: {:?}", client.id , e);
+                            }
+                        }
+                        break;
+                    }
+                    i = i+1;
+                }
+                i = 0;
+                for not_adj in client.drones_not_adjacent.iter() {
+                    if not_adj == id {
+                        if let Some(vec_model) = client.drones_not_adjacent.as_any().downcast_ref::<VecModel<i32>>() {
                             vec_model.remove(i);
                         }else{
                             println!("problems in downcasting adjacent");
@@ -821,7 +900,7 @@ fn main() -> Result<(), slint::PlatformError> {
         }
     });
 
-    // SISTEMA TUTTA STA ROBA CHE NON FUNZIONA UN CAZZO
+    // NON VA NULLA
     let weak = main_window.as_weak();
     let mut senders = sc_senders.clone();
     let mut sc_receiver_=sc_receiver.clone();
@@ -867,22 +946,43 @@ fn main() -> Result<(), slint::PlatformError> {
                     for drone in drones.iter(){
                         if drone.crashed {
                             continue;
-                        }
-                        match send_drone_command(&senders, drone.id as u8, Box::new(DroneCommand::Crash)) {
-                            Ok(_) => {
-                                println!("[SIMULATION CONTREOLLER] Crash command sent to drone {}", drone.id);
+                        }else{
+                            
+                            for adj in drone.adjent.iter(){
+                                match send_drone_command(&senders, adj as u8, Box::new(DroneCommand::RemoveSender(drone.id as u8))){
+                                    Ok(_) => {
+                                        println!("[SIMULATION CONTROLLER] Command sent to remove sender {} from drone {}",drone.id, adj);
+                                    }
+                                    Err(e) => {
+                                        println!("[SIMULATION CONTROLLER] Error removing sender {} from drone {}: {:?}", drone.id, adj, e);
+                                    }
+                                }
                             }
-                            Err(e) => {
-                                println!(
-                                    "[SIMULATION CONTREOLLER] Error sending crash command to drone {}: {:?}",
-                                    drone.id, e
-                                );
+
+                            match send_drone_command(&senders, drone.id as u8, Box::new(DroneCommand::Crash)){
+                                Ok(_) => {
+                                    println!("[SIMULATION CONTROLLER] Drone {} crashed", drone.id);
+                                }
+                                Err(e) => {
+                                    println!("[SIMULATION CONTROLLER] Error crashing drone {}: {:?}", drone.id, e);
+                                }
                             }
-                        }
+                    }
                     }
                     window.set_drones(slint::ModelRc::new(slint::VecModel::from(vec![])));
 
                     for client in clients.iter(){
+                        for adj in client.drones_adjacent.iter(){
+                            match send_drone_command(&senders, adj as u8, Box::new(DroneCommand::RemoveSender(client.id as u8))){
+                                Ok(_) => {
+                                    println!("[SIMULATION CONTROLLER] Command sent to remove sender from drone {}", adj);
+                                }
+                                Err(e) => {
+                                    println!("[SIMULATION CONTROLLER] Error removing sender from drone {}: {:?}", adj, e);
+                                }
+                            }
+                        }
+
                         match send_drone_command(&senders, client.id as u8, Box::new(DroneCommand::Crash)) {
                             Ok(_) => {
                                 println!("[SIMULATION CONTREOLLER] Crash command sent to client {}", client.id);
@@ -894,10 +994,24 @@ fn main() -> Result<(), slint::PlatformError> {
                                 );
                             }
                         }
+                                                
+
                     }
                     window.set_clients(slint::ModelRc::new(slint::VecModel::from(vec![])));
 
                     for server in servers.iter(){
+
+                        for adj in server.drones_adjacent.iter(){
+                            match send_drone_command(&senders, adj as u8, Box::new(DroneCommand::RemoveSender(server.id as u8))){
+                                Ok(_) => {
+                                    println!("[SIMULATION CONTROLLER] Command sent to remove sender from drone {}", adj);
+                                }
+                                Err(e) => {
+                                    println!("[SIMULATION CONTROLLER] Error removing sender from drone {}: {:?}", adj, e);
+                                }
+                            }
+                        }
+
                         match send_drone_command(&senders, server.id as u8, Box::new(DroneCommand::Crash)) {
                             Ok(_) => {
                                 println!("[SIMULATION CONTREOLLER] Crash command sent to server {}", server.id);
@@ -909,17 +1023,18 @@ fn main() -> Result<(), slint::PlatformError> {
                                 );
                             }
                         }
+
                     }
                     window.set_servers(slint::ModelRc::new(slint::VecModel::from(vec![])));
                     window.set_edges(slint::ModelRc::new(slint::VecModel::from(vec![])));
-                    // senders= Arc::new(Mutex::new(Some(net_init.get_controller_senders())));
-                    // sc_receiver_ = Arc::new(Mutex::new(Some(net_init.get_controller_recv())));
-                    // channels_ = Arc::new(Mutex::new(Some(net_init.get_channels())));
+                    senders= Arc::new(Mutex::new(Some(net_init.get_controller_senders())));
+                    sc_receiver_ = Arc::new(Mutex::new(Some(net_init.get_controller_recv())));
+                    channels_ = Arc::new(Mutex::new(Some(net_init.get_channels())));
 
 
                     // failed = false;
                     println!("{:?}", net_init);
-                    *network_initializer_.lock().unwrap() = Err(ConfigError::EmptyTopology);    // questa cosa non funziona
+                    // *network_initializer_.lock().unwrap() = Err(ConfigError::EmptyTopology);    // questa cosa non funziona
                 }
 
             },
