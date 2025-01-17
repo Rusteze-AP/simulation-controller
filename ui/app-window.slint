@@ -303,10 +303,26 @@ export component RightMenu inherits Window{
 
 }
 
+component BottomWindow inherits Window{
+    callback select_new_file();
+    width: 200px;
+    height: 50px;
+    GridLayout {
+        Row{
+            Button {
+                text: "Change configuration file";
+                clicked()=>{
+                    select_new_file();
+                }
+            }
+        }
+    }
+}
+
 
 export component MainWindow inherits Window {
     callback open_right_window;
-    callback select_file;
+    callback select_new_file;
     callback reactivate_drone();
     callback clone_file();
     callback crash();
@@ -477,6 +493,15 @@ export component MainWindow inherits Window {
                 parent.counter = parent.counter - 1;
                 parent.move_message();
             }
+        }
+    }
+
+    BottomWindow {
+        x: 870px;
+        y: 200px;
+
+        select_new_file()=>{
+            select_new_file();
         }
     }
 

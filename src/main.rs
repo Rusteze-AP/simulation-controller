@@ -9,6 +9,8 @@ use wg_internal::controller::{DroneCommand, DroneEvent};
 use wg_internal::network::NodeId;
 use wg_internal::packet::Packet;
 use network_initializer::channel::Channel;
+use rfd::FileDialog;
+use std::ffi::OsString;
 
 
 fn check_edges(edges: &Vec<Edge>, id1: i32, id2: i32) -> bool {
@@ -112,7 +114,7 @@ fn populate_servers(parsed_server: &Vec<ParsedServer>, edges: &mut Vec<Edge>, pa
     return servers;
 }
 
-// send drone commands 
+// send drone commands
 fn send_drone_command(senders: &Arc<Mutex<Option<HashMap<u8, Sender<DroneCommand>>>>>, id:u8, command: Box<DroneCommand>)->Result<(), String>{
     if let Some(ref s) = *senders.lock().unwrap() {
         // println!("Senders map {:?}", s);
@@ -188,15 +190,16 @@ fn main() -> Result<(), slint::PlatformError> {
     });
 
     // thread for receiving DroneEvent
+    let sc_receiver_ = sc_receiver.clone();
     let weak = main_window.as_weak();
     thread::spawn(move ||{
         loop{
-            if let Some(sc_rec) = sc_receiver.lock().unwrap().as_ref(){
+            if let Some(sc_rec) = sc_receiver_.lock().unwrap().as_ref(){
                     match sc_rec.recv(){
                         // PacketDropped
                         Ok(DroneEvent::PacketDropped(packet)) => {
                             println!("[SIMULATION CONTROLLER] PacketDropped {:?}", packet);
-                            match weak.upgrade_in_event_loop(move |window| 
+                            match weak.upgrade_in_event_loop(move |window|
                                 {let messages : ModelRc<Message> = window.get_messages();
                                 if let Some(vec_model) = messages.as_any().downcast_ref::<VecModel<Message>>() {
                                     vec_model.push(Message{id1: packet.routing_header.hops[packet.routing_header.hop_index-1] as i32 , id2: packet.routing_header.hops[packet.routing_header.hop_index] as i32, msg_type:1});
@@ -218,7 +221,7 @@ fn main() -> Result<(), slint::PlatformError> {
                         // PacketSent
                         Ok(DroneEvent::PacketSent(packet)) => {
                             println!("[SIMULATION CONTROLLER] PacketSent {:?}", packet);
-                            match weak.upgrade_in_event_loop(move |window| 
+                            match weak.upgrade_in_event_loop(move |window|
                                 {let messages : ModelRc<Message> = window.get_messages();
                                     if packet.routing_header.hops.len() > 1{
                                         if let Some(vec_model) = messages.as_any().downcast_ref::<VecModel<Message>>() {
@@ -242,7 +245,7 @@ fn main() -> Result<(), slint::PlatformError> {
                         // ControllerShortcut
                         Ok(DroneEvent::ControllerShortcut(packet)) => {
                             println!("[SIMULATION CONTROLLER] ControllerShortcut {:?}", packet);
-                            match weak.upgrade_in_event_loop(move |window| 
+                            match weak.upgrade_in_event_loop(move |window|
                                 {let messages : ModelRc<Message> = window.get_messages();
                                 if let Some(vec_model) = messages.as_any().downcast_ref::<VecModel<Message>>() {
                                     vec_model.push(Message{id1: packet.routing_header.hops[packet.routing_header.hop_index-1] as i32 , id2: packet.routing_header.hops[packet.routing_header.hop_index] as i32, msg_type:2});
@@ -372,7 +375,7 @@ fn main() -> Result<(), slint::PlatformError> {
             } else {
                 println!("No senders map loaded");
             }
-            
+
 
         }
     });
@@ -514,7 +517,7 @@ fn main() -> Result<(), slint::PlatformError> {
 
             // REMOVE ADJACENT FROM CLIENT/SERVER
             let tmp1 : i32; // lower -> drone
-            let tmp2 : i32; // higher -> client or server 
+            let tmp2 : i32; // higher -> client or server
             if id_1<id_2{
                 tmp1 = id_1;
                 tmp2 = id_2;
@@ -745,7 +748,7 @@ fn main() -> Result<(), slint::PlatformError> {
 
             // ADD ADJCENT TO CLIENT/SERVER (and remove from not_adjacent)
             let tmp1 : i32; // lower -> drone
-            let tmp2 : i32; // higher -> client or server 
+            let tmp2 : i32; // higher -> client or server
             if id_1<id_2{
                 tmp1 = id_1;
                 tmp2 = id_2;
@@ -792,7 +795,7 @@ fn main() -> Result<(), slint::PlatformError> {
                     }
                 }
             }
-        
+
         }
     });
 
@@ -800,6 +803,7 @@ fn main() -> Result<(), slint::PlatformError> {
 
     let weak = main_window.as_weak();
     let senders = sc_senders.clone();
+
     main_window.on_change_pdr(move || {
         println!("[SIMULATION CONTROLLER ] CHANGE PDR");
         if let Some(window) = weak.upgrade() {
@@ -814,8 +818,178 @@ fn main() -> Result<(), slint::PlatformError> {
                     println!("[SIMULATION CONTROLLER] Error changing drone {} pdr to {}: {:?}", id, new_pdr, e);
                 }
             }
-        }  
+        }
     });
+
+    // SISTEMA TUTTA STA ROBA CHE NON FUNZIONA UN CAZZO
+    let weak = main_window.as_weak();
+    let mut senders = sc_senders.clone();
+    let mut sc_receiver_=sc_receiver.clone();
+    let mut channels_ = channels.clone();
+    let mut network_initializer_: Arc<Mutex<Result<NetworkInitializer, ConfigError>>> = network_initializer.clone();
+    main_window.on_select_new_file(move || {
+        println!("[SIMULATION CONTROLLER ] SELECT NEW CONFIG FILE");
+        let mut new_path: String = String::from("");
+        let mut failed : bool = true;
+
+        // // take new path
+        let file = FileDialog::new().pick_file();
+        if let Some(mut path) = file {
+            let path_string = <OsString as Clone>::clone(&path.as_mut_os_string()).into_string();
+            if let Ok(path_string) = path_string {
+                println!("Selected file: {}", path_string);
+                new_path = path_string;
+            }
+        }
+
+
+
+        // if let Ok(ref mut c) = *network_initializer_.lock().unwrap() {
+        //     println!("Stop simulation begin");
+        //     // c.stop_simulation();
+        //     println!("Stop simulation ended");
+        // }else{
+
+        //     println!("No network initializer");
+        // }
+        // println!("here");
+
+        // // if it is valid, clean up all structures
+        match NetworkInitializer::new(Some(&new_path)){
+            Ok(mut net_init)=>{
+
+                // send crash to all nodes
+                if let Some(window) = weak.upgrade() {
+                    let drones = window.get_drones();
+                    let clients = window.get_clients();
+                    let servers = window.get_servers();
+
+                    for drone in drones.iter(){
+                        if drone.crashed {
+                            continue;
+                        }
+                        match send_drone_command(&senders, drone.id as u8, Box::new(DroneCommand::Crash)) {
+                            Ok(_) => {
+                                println!("[SIMULATION CONTREOLLER] Crash command sent to drone {}", drone.id);
+                            }
+                            Err(e) => {
+                                println!(
+                                    "[SIMULATION CONTREOLLER] Error sending crash command to drone {}: {:?}",
+                                    drone.id, e
+                                );
+                            }
+                        }
+                    }
+                    window.set_drones(slint::ModelRc::new(slint::VecModel::from(vec![])));
+
+                    for client in clients.iter(){
+                        match send_drone_command(&senders, client.id as u8, Box::new(DroneCommand::Crash)) {
+                            Ok(_) => {
+                                println!("[SIMULATION CONTREOLLER] Crash command sent to client {}", client.id);
+                            }
+                            Err(e) => {
+                                println!(
+                                    "[SIMULATION CONTREOLLER] Error sending crash command to client {}: {:?}",
+                                    client.id, e
+                                );
+                            }
+                        }
+                    }
+                    window.set_clients(slint::ModelRc::new(slint::VecModel::from(vec![])));
+
+                    for server in servers.iter(){
+                        match send_drone_command(&senders, server.id as u8, Box::new(DroneCommand::Crash)) {
+                            Ok(_) => {
+                                println!("[SIMULATION CONTREOLLER] Crash command sent to server {}", server.id);
+                            }
+                            Err(e) => {
+                                println!(
+                                    "[SIMULATION CONTREOLLER] Error sending crash command to server {}: {:?}",
+                                    server.id, e
+                                );
+                            }
+                        }
+                    }
+                    window.set_servers(slint::ModelRc::new(slint::VecModel::from(vec![])));
+                    window.set_edges(slint::ModelRc::new(slint::VecModel::from(vec![])));
+                    // senders= Arc::new(Mutex::new(Some(net_init.get_controller_senders())));
+                    // sc_receiver_ = Arc::new(Mutex::new(Some(net_init.get_controller_recv())));
+                    // channels_ = Arc::new(Mutex::new(Some(net_init.get_channels())));
+
+
+                    // failed = false;
+                    println!("{:?}", net_init);
+                    *network_initializer_.lock().unwrap() = Err(ConfigError::EmptyTopology);    // questa cosa non funziona
+                }
+
+            },
+            Err(e)=>{
+                println!("[SIMULATION CONTROLLER] [SELECT-NEW-FILE] {}", e);
+            }
+        }
+
+        // if !failed{
+        //     *network_initializer_.lock().unwrap() = NetworkInitializer::new(Some(&new_path));
+        //     println!("OK");
+        // }
+
+    });
+
+
+
+
+        //         }
+
+        //         failed = false;
+        //         *network_initializer_.lock().unwrap() = Ok(net_init);
+        //     }
+        //     Err(e)=>{
+        //         println!("[SIMULATION CONTROLLER] [SELECT-NEW-FILE] {}", e);
+        //     }
+        // }
+
+        // if !failed{
+
+        //     // rewriting
+        //     if let Ok(ref mut c)= *network_initializer_.lock().unwrap() {
+        //         *sc_receiver_.lock().unwrap() = Some((*c).get_controller_recv());
+        //         *senders.lock().unwrap() = Some((*c).get_controller_senders());
+        //         *channels_.lock().unwrap() = Some((*c).get_channels());
+
+        //         let nodes = c.get_nodes();
+
+        //         let mut edges: Vec<Edge> = vec![];
+        //         let clients = populate_clients(&nodes.1, &mut edges, &nodes.0);
+        //         let drones = populate_drones(&nodes.0, &mut edges);
+        //         let servers = populate_servers(&nodes.2, &mut edges, &nodes.0);
+
+        //         println!("[SIMULATION CONTROLLER] re-initilializing nodes");
+        //         if let Some(window) = weak.upgrade() {
+        //             window.set_edges(slint::ModelRc::new(slint::VecModel::from(edges)));
+        //             window.set_clients(slint::ModelRc::new(slint::VecModel::from(clients)));
+        //             window.set_drones(slint::ModelRc::new(slint::VecModel::from(drones)));
+        //             window.set_servers(slint::ModelRc::new(slint::VecModel::from(servers)));
+        //         }
+        //     }
+
+        //     // thread for running the simulation
+        //     let network_initializer_run_simulation = network_initializer_.clone();
+        //     thread::spawn(move || {
+        //         println!("Starting simulation");
+        //         if let Ok(ref mut c) = *network_initializer_run_simulation.lock().unwrap() {
+        //             match c.run_simulation(){
+        //                 Ok(_) => {
+        //                     println!("[SIMULATION CONTROLLER] Simulation started");
+        //                 }
+        //                 Err(e) => {
+        //                     println!("[SIMULATION CONTROLLER] Error starting simulation: {:?}", e);
+        //                 }
+        //             }
+        //         }
+        //     });
+        // }
+    // });
+
 
     let _res = main_window.run();
 
@@ -824,13 +998,13 @@ fn main() -> Result<(), slint::PlatformError> {
 
 
 
-// TO DECIDE: 
+// TO DECIDE:
 // - testing with different config files
 // - controllare tutte cose segnate sul protocollo
 // - vogliamo aggiungere nodi nuovi? come?
 
 // TODO (annina):
-// - aggiungere drone crash grafica ->  OK
+// ->OK aggiungere drone crash grafica
 // - change configuration si (implementala)
 // - sarebbbe figo avere controlli network partitions (non necesssario)
-// -  
+// -
