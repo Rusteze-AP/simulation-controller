@@ -25,6 +25,7 @@ fn check_edges(edges: &Vec<Edge>, id1: i32, id2: i32) -> bool {
 // POPULATE drones, clients and servers
 fn populate_drones(parsed_drones: &Vec<ParsedDrone>, edges: &mut Vec<Edge>) -> Vec<Drone> {
     let mut drones: Vec<Drone> = vec![];
+    let mut i = 0;
     for drone in parsed_drones {
         let mut adjent = vec![];
         for adj in &drone.connected_drone_ids {
@@ -49,13 +50,16 @@ fn populate_drones(parsed_drones: &Vec<ParsedDrone>, edges: &mut Vec<Edge>) -> V
             id: drone.id as i32,
             pdr: drone.pdr,
             crashed: false,
+            position_in_vector: i,
         });
+        i = i+1;
     }
     return drones;
 }
 
 fn populate_clients(parsed_client: &Vec<ParsedClient>, edges: &mut Vec<Edge>, parsed_drones: &Vec<ParsedDrone>)-> Vec<ClientServer>{
     let mut clients: Vec<ClientServer> = vec![];
+    let mut i = 0;
     for client in parsed_client{
         let mut adjent = vec![];
         for adj in &client.connected_drone_ids {
@@ -79,13 +83,16 @@ fn populate_clients(parsed_client: &Vec<ParsedClient>, edges: &mut Vec<Edge>, pa
             drones_adjacent: slint::ModelRc::new(slint::VecModel::from(adjent)),
             drones_not_adjacent: slint::ModelRc::new(slint::VecModel::from(not_adj)),
             id: client.id as i32,
+            position_in_vector: i,
         });
+        i = i+1;
     }
     return clients;
 }
 
 fn populate_servers(parsed_server: &Vec<ParsedServer>, edges: &mut Vec<Edge>, parsed_drones: &Vec<ParsedDrone>)-> Vec<ClientServer>{
     let mut servers: Vec<ClientServer> = vec![];
+    let mut i= 0;
     for server in parsed_server{
         let mut adjent = vec![];
         for adj in &server.connected_drone_ids {
@@ -109,7 +116,9 @@ fn populate_servers(parsed_server: &Vec<ParsedServer>, edges: &mut Vec<Edge>, pa
             drones_adjacent: slint::ModelRc::new(slint::VecModel::from(adjent)),
             drones_not_adjacent: slint::ModelRc::new(slint::VecModel::from(not_adj)),
             id: server.id as i32,
+            position_in_vector: i,
         });
+        i = i+1;
     }
     return servers;
 }
@@ -145,7 +154,7 @@ fn main() -> Result<(), slint::PlatformError> {
     let main_window = MainWindow::new()?;
 
     //initial configuration -> default
-    let network_initializer: Arc<Mutex<Result<NetworkInitializer, ConfigError>>> = Arc::new(Mutex::new(NetworkInitializer::new(Some("test.toml"))));
+    let network_initializer: Arc<Mutex<Result<NetworkInitializer, ConfigError>>> = Arc::new(Mutex::new(NetworkInitializer::new(Some("test4.toml"))));
     let mut sc_receiver: Arc<Mutex<Option<Receiver<DroneEvent>>>> = Arc::new(Mutex::new(None));
     let mut sc_senders: Arc<Mutex<Option<HashMap<NodeId, Sender<DroneCommand>>>>> = Arc::new(Mutex::new(None));
     let mut channels: Arc<Mutex<Option<HashMap<NodeId, Channel<Packet>>>>> = Arc::new(Mutex::new(None));

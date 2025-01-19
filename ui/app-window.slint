@@ -6,6 +6,7 @@ struct Drone {
     not_adjacent: [int],
     pdr: float,
     crashed: bool,
+    position_in_vector : int, // TO SOLVE PROBLEM OF ID
 }
 
 // no connection with other ClientServer because there cannot be a direct connection
@@ -13,6 +14,7 @@ struct ClientServer {
     id : int,
     drones_adjacent: [int],
     drones_not_adjacent: [int],
+    position_in_vector: int,
 }
 
 struct Edge{
@@ -126,6 +128,7 @@ export component LeftMenu inherits Window{
     width: 350px;
     height: 1000px;
     in-out property <string> id_selected_client_server;
+    in-out property <int> position_selected_client_server;
     in-out property <string> label_id;
     in-out property <ClientServer> selected;
     in-out property <int> edge_selected;
@@ -333,8 +336,10 @@ export component MainWindow inherits Window {
     callback remove_message();
     callback change_pdr();
 
-    in-out property <int> id_selected_drone : 0;
-    in-out property <int> id_selected_client_server : 20;
+    in-out property <int> id_selected_drone;
+    in-out property <int> position_selected_drone: 0;
+    in-out property <int> id_selected_client_server;
+    in-out property <int> postition_selected_client_server: 0;
     in-out property <int> receiver_id;
     in-out property <int> sender_id;
     in-out property <[Drone]> drones; // tenere campo crashed e continuare a fare vedere i droni morti con background diverso e senza gesture
@@ -377,6 +382,7 @@ export component MainWindow inherits Window {
         open_right_window => {
             if drone.crashed == false{
                 id_selected_drone = drone.id;
+                position_selected_drone = drone.position_in_vector;
             }
         }
     }
@@ -393,6 +399,7 @@ export component MainWindow inherits Window {
 
         open_right_window => {
             id_selected_client_server = client.id;
+            postition_selected_client_server = client.position_in_vector;
         }
     }
 
@@ -406,6 +413,7 @@ export component MainWindow inherits Window {
 
         open_right_window => {
             id_selected_client_server = server.id;
+            postition_selected_client_server = server.position_in_vector;
         }
     }
 
@@ -414,7 +422,7 @@ export component MainWindow inherits Window {
         x: 0;
         y: parent.height/5;
         label_id: id_selected_client_server<30? "client" + id_selected_client_server : "server" + id_selected_client_server;
-        selected: id_selected_client_server<30? clients[id_selected_client_server - 20] : servers[id_selected_client_server - 30];
+        selected: id_selected_client_server<30? clients[postition_selected_client_server] : servers[postition_selected_client_server];
 
         remove_edge => {
             parent.receiver_id = self.edge_selected;
@@ -436,34 +444,35 @@ export component MainWindow inherits Window {
         x: parent.width - self.width;
         y: parent.height/5;
         label_id: "drone" + id_selected_drone;
-        selected_drone: drones[id_selected_drone];
+        selected_drone: drones[position_selected_drone];
+
 
         crash() => {
             crash();
-            drones[id_selected_drone].crashed = true;
+            drones[position_selected_drone].crashed = true;
         }
 
         remove_edge => {
-            if !drones[id_selected_drone].crashed{
+            if !drones[position_selected_drone].crashed{
                 parent.receiver_id = self.edge_selected;
-                parent.sender_id = self.selected_drone.id;
+                parent.sender_id = drones[position_selected_drone].id;
                 remove_edge();
             }
         }
 
         add_edge => {
-            if !drones[id_selected_drone].crashed{
+            if !drones[position_selected_drone].crashed{
                 parent.receiver_id = self.edge_selected;
-                parent.sender_id = self.selected_drone.id;
+                parent.sender_id = drones[position_selected_drone].id;
                 add_edge();
             }
         }
 
         change_pdr() => {
-            if !drones[id_selected_drone].crashed{
+            if !drones[position_selected_drone].crashed{
                 new_pdr = self.tmp_pdr;
                 change_pdr();
-                drones[id_selected_drone].pdr = self.tmp_pdr;
+                drones[position_selected_drone].pdr = self.tmp_pdr;
             }
         }
 
