@@ -180,18 +180,18 @@ fn send_drone_command(senders: &Arc<Mutex<Option<HashMap<u8, Sender<DroneCommand
 fn main() -> Result<(), slint::PlatformError> {
     // let logger = Logger::new(0, true, "SimulationController".to_string());
     let main_window = MainWindow::new()?;
-    match get_screen_resolution(){
-        Ok((width, height)) => {
-            main_window.set_width_screen(width as i32);
-            main_window.set_height_screen(height as i32);
-        }
-        Err(e) => {
-            println!("Error getting screen resolution: {:?}", e);
-        }
-    }
+    // match get_screen_resolution(){
+    //     Ok((width, height)) => {
+    //         main_window.set_width_screen(width as i32);
+    //         main_window.set_height_screen(height as i32);
+    //     }
+    //     Err(e) => {
+    //         println!("Error getting screen resolution: {:?}", e);
+    //     }
+    // }
 
     //initial configuration -> default
-    let network_initializer: Arc<Mutex<Result<NetworkInitializer, ConfigError>>> = Arc::new(Mutex::new(NetworkInitializer::new(Some("test3.toml"))));
+    let network_initializer: Arc<Mutex<Result<NetworkInitializer, ConfigError>>> = Arc::new(Mutex::new(NetworkInitializer::new(Some("test.toml"))));
     let mut sc_receiver: Arc<Mutex<Option<Receiver<DroneEvent>>>> = Arc::new(Mutex::new(None));
     let mut sc_senders: Arc<Mutex<Option<HashMap<NodeId, Sender<DroneCommand>>>>> = Arc::new(Mutex::new(None));
     let mut channels: Arc<Mutex<Option<HashMap<NodeId, Channel<Packet>>>>> = Arc::new(Mutex::new(None));
@@ -1168,4 +1168,5 @@ fn main() -> Result<(), slint::PlatformError> {
 // ->OK aggiungere drone crash grafica
 // - change configuration si (implementala)
 // - sarebbbe figo avere controlli network partitions (non necesssario)
-// -
+// - sistemare configurazione  schermo
+// - sistemare rescaling 
