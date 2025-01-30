@@ -11,21 +11,34 @@ use wg_internal::packet::Packet;
 use network_initializer::channel::Channel;
 use rfd::FileDialog;
 use std::ffi::OsString;
-use x11rb::connection::Connection;
-use x11rb::rust_connection::RustConnection;
+// use x11rb::connection::Connection;
+// use x11rb::rust_connection::RustConnection;
+use winit::event_loop::EventLoop;
 
-fn get_screen_resolution() -> Result<(u16, u16), Box<dyn std::error::Error>> {
-    // Establish a connection to the X11 server
-    let (conn, screen_num) = RustConnection::connect(None)?;
+fn get_screen_resolution() -> Result<(u16, u16), String> {
+    // // Establish a connection to the X11 server
+    // let (conn, screen_num) = RustConnection::connect(None)?;
     
-    // Get screen information
-    let screen = &conn.setup().roots[screen_num];
+    // // Get screen information
+    // let screen = &conn.setup().roots[screen_num];
 
-    // Get width and height of the root window
-    let width = screen.width_in_pixels;
-    let height = screen.height_in_pixels;
+    // // Get width and height of the root window
+    // let width = screen.width_in_pixels;
+    // let height = screen.height_in_pixels;
 
-    Ok((width, height))
+    // Ok((width, height))
+
+    let event_loop = EventLoop::new();
+
+    // Get the primary monitor
+    if let Ok(monitor) = event_loop{
+        let size = monitor.primary_monitor().unwrap().size();
+        println!("Screen dimensions to fit: {}x{}", size.width, size.height);
+        return Ok((size.width as u16, size.height as u16));
+    } else {
+        println!("Unable to determine screen resolution.");
+        return Err(String::from("Unable to determine screen resolution."));
+    }
 }
 
 fn check_edges(edges: &Vec<Edge>, id1: i32, id2: i32) -> bool {
