@@ -336,6 +336,8 @@ export component MainWindow inherits Window {
     callback remove_message();
     callback change_pdr();
 
+    in property <int> width_screen: 10;
+    in property <int> height_screen: 10;
     in-out property <int> id_selected_drone;
     in-out property <int> position_selected_drone: 0;
     in-out property <int> id_selected_client_server;
@@ -350,8 +352,8 @@ export component MainWindow inherits Window {
     in-out property <float> new_pdr;
 
 
-    width: 1920px;
-    height: 1080px;
+    width: width_screen*1px;
+    height: height_screen*1px;
     background: #000000;
 
     for edge[i] in edges: Edge{

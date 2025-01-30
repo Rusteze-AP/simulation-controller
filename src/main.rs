@@ -1,6 +1,6 @@
 slint::include_modules!();
 use crossbeam::channel::{ Receiver, Sender};
-use network_initializer::{errors::ConfigError, NetworkInitializer, parsed_nodes::{ParsedDrone, ParsedClient, ParsedServer}};
+use network_initializer::{errors::ConfigError, NetworkInitializer, parsed_nodes::{ParsedDrone, ParsedClient, ParsedServer}, DroneType};
 use slint::{Model, ModelRc, VecModel};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -11,7 +11,22 @@ use wg_internal::packet::Packet;
 use network_initializer::channel::Channel;
 use rfd::FileDialog;
 use std::ffi::OsString;
+use x11rb::connection::Connection;
+use x11rb::rust_connection::RustConnection;
 
+fn get_screen_resolution() -> Result<(u16, u16), Box<dyn std::error::Error>> {
+    // Establish a connection to the X11 server
+    let (conn, screen_num) = RustConnection::connect(None)?;
+    
+    // Get screen information
+    let screen = &conn.setup().roots[screen_num];
+
+    // Get width and height of the root window
+    let width = screen.width_in_pixels;
+    let height = screen.height_in_pixels;
+
+    Ok((width, height))
+}
 
 fn check_edges(edges: &Vec<Edge>, id1: i32, id2: i32) -> bool {
     for edge in edges {
@@ -152,9 +167,18 @@ fn send_drone_command(senders: &Arc<Mutex<Option<HashMap<u8, Sender<DroneCommand
 fn main() -> Result<(), slint::PlatformError> {
     // let logger = Logger::new(0, true, "SimulationController".to_string());
     let main_window = MainWindow::new()?;
+    match get_screen_resolution(){
+        Ok((width, height)) => {
+            main_window.set_width_screen(width as i32);
+            main_window.set_height_screen(height as i32);
+        }
+        Err(e) => {
+            println!("Error getting screen resolution: {:?}", e);
+        }
+    }
 
     //initial configuration -> default
-    let network_initializer: Arc<Mutex<Result<NetworkInitializer, ConfigError>>> = Arc::new(Mutex::new(NetworkInitializer::new(Some("test4.toml"))));
+    let network_initializer: Arc<Mutex<Result<NetworkInitializer, ConfigError>>> = Arc::new(Mutex::new(NetworkInitializer::new(Some("test3.toml"))));
     let mut sc_receiver: Arc<Mutex<Option<Receiver<DroneEvent>>>> = Arc::new(Mutex::new(None));
     let mut sc_senders: Arc<Mutex<Option<HashMap<NodeId, Sender<DroneCommand>>>>> = Arc::new(Mutex::new(None));
     let mut channels: Arc<Mutex<Option<HashMap<NodeId, Channel<Packet>>>>> = Arc::new(Mutex::new(None));
@@ -187,7 +211,7 @@ fn main() -> Result<(), slint::PlatformError> {
     thread::spawn(move || {
         println!("Starting simulation");
         if let Ok(ref mut c) = *network_initializer_run_simulation.lock().unwrap() {
-            match c.run_simulation(){
+            match c.run_simulation(Some(vec![DroneType::RustezeDrone])){
                 Ok(_) => {
                     println!("[SIMULATION CONTROLLER] Simulation started");
                 }
