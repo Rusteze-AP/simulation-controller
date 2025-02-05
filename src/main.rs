@@ -2,7 +2,7 @@ slint::include_modules!();
 use crossbeam::channel::{ Receiver, Sender};
 use network_initializer::{errors::ConfigError, NetworkInitializer, parsed_nodes::{ParsedDrone, ParsedClient, ParsedServer}, DroneType};
 use slint::{Model, ModelRc, VecModel};
-use core::time;
+use std::time::Duration;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -1160,19 +1160,112 @@ fn main() -> Result<(), slint::PlatformError> {
     // });
 
 
-        // Set up Ctrl+C handler
-        // let _command_senders = self.get_controller_senders();
-        ctrlc::set_handler(move || {
-            println!("Received Ctrl+C, shutting down...");
-            std::process::exit(0);
+    // Set up Ctrl+C handler
+    let weak = main_window.as_weak();
+    let channels_ = channels.clone();
+    let senders = sc_senders.clone();
 
-            // Send crash message to all nodes
-            // for (id, sender) in &command_senders {
-            //     sender.send(DroneCommand::Crash).unwrap();
-            //     println!("Sent crash command to node {}", id);
-            // }
-        })
-        .expect("Error setting Ctrl+C handler");
+    ctrlc::set_handler(move || {
+        println!("Received Ctrl+C, shutting down gracefully...");
+
+        let senders1 = senders.clone();
+        let channels1 = channels_.clone();
+        match weak.upgrade_in_event_loop(move |window|{
+            let drones = window.get_drones();
+
+            for drone in drones.iter(){
+                match send_drone_command(&senders1, drone.id as u8, Box::new(DroneCommand::Crash)){
+                    Ok(_) => {
+                        println!("[SIMULATION CONTROLLER] Drone {} crashed", drone.id);
+                    }
+                    Err(e) => {
+                        println!("[SIMULATION CONTROLLER] Error crashing drone {}: {:?}", drone.id, e);
+                    }
+                }
+
+                for adj in drone.adjent.iter(){
+                    match send_drone_command(&senders1, adj as u8, Box::new(DroneCommand::RemoveSender(drone.id as u8))){
+                        Ok(_) => {
+                            println!("[SIMULATION CONTROLLER] Removed sender {} from drone {}", drone.id, adj);
+                        }
+                        Err(e) => {
+                            println!("[SIMULATION CONTROLLER] Error removing sender {} from drone {}: {:?}", drone.id, adj, e);
+                        }
+                    }
+                }
+
+                if let Some(ref mut channel) = *channels1.lock().unwrap() {
+                    channel.remove(&(drone.id as u8));
+                } else {
+                    println!("No channels map loaded");
+                }
+                if let Some(ref mut s) = *senders1.lock().unwrap() {
+                    s.remove(&(drone.id as u8));
+                } else {
+                    println!("No senders map loaded");
+                }
+            }
+            // window.set_drones(slint::ModelRc::new(slint::VecModel::from(vec![])));
+
+            let clients = window.get_clients();
+            for client in clients.iter(){
+                match send_drone_command(&senders1, client.id as u8, Box::new(DroneCommand::Crash)){
+                    Ok(_) => {
+                        println!("[SIMULATION CONTROLLER] Client {} crashed", client.id);
+                    }
+                    Err(e) => {
+                        println!("[SIMULATION CONTROLLER] Error crashing client {}: {:?}", client.id, e);
+                    }
+                }
+
+                if let Some(ref mut channel) = *channels1.lock().unwrap() {
+                    channel.remove(&(client.id as u8));
+                } else {
+                    println!("No channels map loaded");
+                }
+                if let Some(ref mut s) = *senders1.lock().unwrap() {
+                    s.remove(&(client.id as u8));
+                } else {
+                    println!("No senders map loaded");
+                }
+            }
+            // window.set_clients(slint::ModelRc::new(slint::VecModel::from(vec![])));
+
+            let servers = window.get_servers();
+            for server in servers.iter(){
+                match send_drone_command(&senders1, server.id as u8, Box::new(DroneCommand::Crash)){
+                    Ok(_) => {
+                        println!("[SIMULATION CONTROLLER] Client {} crashed", server.id);
+                    }
+                    Err(e) => {
+                        println!("[SIMULATION CONTROLLER] Error crashing client {}: {:?}", server.id, e);
+                    }
+                }
+
+                if let Some(ref mut channel) = *channels1.lock().unwrap() {
+                    channel.remove(&(server.id as u8));
+                } else {
+                    println!("No channels map loaded");
+                }
+                if let Some(ref mut s) = *senders1.lock().unwrap() {
+                    s.remove(&(server.id as u8));
+                } else {
+                    println!("No senders map loaded");
+                }
+            }
+
+        }){
+            Ok(_)=>{
+                println!("[SIMULATION CONTROLLER] Shutting down gracefully...");
+            },
+            Err(x)=>{
+                println!("[SIMULATION CONTROLLER] Error in shutting down gracefully {}...",x);
+            }
+        }
+
+        std::process::exit(0);
+
+    }).expect("Error setting Ctrl+C handler");
 
 
     let _res = main_window.run();
