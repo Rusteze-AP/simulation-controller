@@ -323,7 +323,7 @@ component BottomWindow inherits Window{
 }
 
 
-export component MainWindow inherits Window {
+export component Window inherits Window {
     callback open_right_window;
     callback select_new_file;
     callback reactivate_drone();
@@ -336,8 +336,8 @@ export component MainWindow inherits Window {
     callback remove_message();
     callback change_pdr();
 
-    in property <int> width_screen: 1920;
-    in property <int> height_screen: 1080;
+    // in property <int> width_screen: 1900;
+    // in property <int> height_screen: 1000;
     in-out property <int> id_selected_drone;
     in-out property <int> position_selected_drone: 0;
     in-out property <int> id_selected_client_server;
@@ -352,8 +352,10 @@ export component MainWindow inherits Window {
     in-out property <float> new_pdr;
 
 
-    width: width_screen*1px;
-    height: height_screen*1px;
+    // width: width_screen*1px;
+    // height: height_screen*1px;
+    preferred-height: 100%;
+    preferred-width: 100%;
     background: #000000;
 
     for edge[i] in edges: Edge{

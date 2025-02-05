@@ -17,6 +17,8 @@ use std::ffi::OsString;
 use winit::event_loop::EventLoop;
 use packet_forge::ClientType;
 
+
+
 fn get_screen_resolution() -> Result<(u16, u16), String> {
     // // Establish a connection to the X11 server
     // let (conn, screen_num) = RustConnection::connect(None)?;
@@ -181,7 +183,9 @@ fn send_drone_command(senders: &Arc<Mutex<Option<HashMap<u8, Sender<DroneCommand
 
 fn main() -> Result<(), slint::PlatformError> {
     // let logger = Logger::new(0, true, "SimulationController".to_string());
-    let main_window = MainWindow::new()?;
+    let main_window = Window::new()?;
+    // main_window.set_fullscreen(true);
+
     // match get_screen_resolution(){
     //     Ok((width, height)) => {
     //         main_window.set_width_screen(width as i32);
@@ -1117,49 +1121,6 @@ fn main() -> Result<(), slint::PlatformError> {
     });
 
 
-
-
-        //         }
-
-        //         failed = false;
-        //         *network_initializer_.lock().unwrap() = Ok(net_init);
-        //     }
-        //     Err(e)=>{
-        //         println!("[SIMULATION CONTROLLER] [SELECT-NEW-FILE] {}", e);
-        //     }
-        // }
-
-        // if !failed{
-
-        //     // rewriting
-        //     if let Ok(ref mut c)= *network_initializer_.lock().unwrap() {
-        //         *sc_receiver_.lock().unwrap() = Some((*c).get_controller_recv());
-        //         *senders.lock().unwrap() = Some((*c).get_controller_senders());
-        //         *channels_.lock().unwrap() = Some((*c).get_channels());
-
-        //         let nodes = c.get_nodes();
-
-        //         let mut edges: Vec<Edge> = vec![];
-        //         let clients = populate_clients(&nodes.1, &mut edges, &nodes.0);
-        //         let drones = populate_drones(&nodes.0, &mut edges);
-        //         let servers = populate_servers(&nodes.2, &mut edges, &nodes.0);
-
-        //         println!("[SIMULATION CONTROLLER] re-initilializing nodes");
-        //         if let Some(window) = weak.upgrade() {
-        //             window.set_edges(slint::ModelRc::new(slint::VecModel::from(edges)));
-        //             window.set_clients(slint::ModelRc::new(slint::VecModel::from(clients)));
-        //             window.set_drones(slint::ModelRc::new(slint::VecModel::from(drones)));
-        //             window.set_servers(slint::ModelRc::new(slint::VecModel::from(servers)));
-        //         }
-        //     }
-
-        //     // thread for running the simulation
-
-        
-        // }
-    // });
-
-
     // Set up Ctrl+C handler
     let weak = main_window.as_weak();
     let channels_ = channels.clone();
@@ -1205,7 +1166,6 @@ fn main() -> Result<(), slint::PlatformError> {
                     println!("No senders map loaded");
                 }
             }
-            // window.set_drones(slint::ModelRc::new(slint::VecModel::from(vec![])));
 
             let clients = window.get_clients();
             for client in clients.iter(){
@@ -1229,7 +1189,7 @@ fn main() -> Result<(), slint::PlatformError> {
                     println!("No senders map loaded");
                 }
             }
-            // window.set_clients(slint::ModelRc::new(slint::VecModel::from(vec![])));
+
 
             let servers = window.get_servers();
             for server in servers.iter(){
@@ -1281,8 +1241,7 @@ fn main() -> Result<(), slint::PlatformError> {
 // - vogliamo aggiungere nodi nuovi? come?
 
 // TODO (annina):
-// ->OK aggiungere drone crash grafica
-// - change configuration si (implementala)
 // - sarebbbe figo avere controlli network partitions (non necesssario)
-// - sistemare configurazione  schermo
+// - sistemare configurazione schermo
 // - sistemare rescaling 
+// - REFACTOR LOG
