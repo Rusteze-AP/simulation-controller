@@ -4,21 +4,23 @@ version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[net]
+git-fetch-with-cli = true
 
 [dependencies]
 slint = "1.9.1"
 rfd = "0.15.1"
 crossbeam = "0.8.4"
 winit = "0.29"
-# network-initializer = { git = "ssh://git@github.com/Rusteze-AP/network-initializer.git", branch = "main" }
+ctrlc = "3.1"
 # network-initializer = { git = "ssh://git@github.com/Rusteze-AP/network-initializer.git", branch = "main" }
 network-initializer = { path = "../network-initializer" }
 wg_internal = { git = "https://github.com/WGL-2024/WGL_repo_2024.git", features = [
     "debug",
 ] }
-rusteze_drone = { git = "ssh://git@github.com/Rusteze-AP/drone.git", branch = "main" }
+rusteze_drone = { git = "ssh://git@github.com/Rusteze-AP/drone.git", branch = "debug" }
 # rusteze_drone = { path="../drone" }
-#client = { git = "ssh://git@github.com/Rusteze-AP/client.git", branch = "main" }
+# client = { git = "ssh://git@github.com/Rusteze-AP/client.git", branch = "dev" }
 client-audio = { git = "ssh://git@github.com/Rusteze-AP/client-audio.git", branch = "main" }
 # client = { path = "../client"}
 server = { git = "ssh://git@github.com/Rusteze-AP/server.git", branch = "main" }

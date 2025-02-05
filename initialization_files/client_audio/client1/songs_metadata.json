@@ -1,0 +1,58 @@
+{
+  "songs": [
+    {
+      "id": 0,
+      "title": "YOUtopia",
+      "artist": "Bring Me The Horizon",
+      "album": "Post Human: Nex Gen",
+      "duration": 118,
+      "image_url": "https://upload.wikimedia.org/wikipedia/en/7/74/Post_Human_NeX_GEn.png",
+      "is_local": true
+    },
+    {
+      "id": 0,
+      "title": "Stairway to Heaven",
+      "artist": "Led Zeppelin",
+      "album": "Led Zeppelin IV",
+      "duration": 65,
+      "image_url": "https://upload.wikimedia.org/wikipedia/en/2/26/Led_Zeppelin_-_Led_Zeppelin_IV.jpg",
+      "is_local": true
+    },
+    {
+      "id": 0,
+      "title": "Numb",
+      "artist": "Linking Park",
+      "album": "Meteora",
+      "duration": 140,
+      "image_url": "https://upload.wikimedia.org/wikipedia/en/0/0c/Linkin_Park_Meteora_Album_Cover.jpg",
+      "is_local": true
+    },
+    {
+      "id": 0,
+      "title": "YOUtopia",
+      "artist": "Bring Me The Horizon",
+      "album": "Post Human: Nex Gen",
+      "duration": 118,
+      "image_url": "https://www.billboard.com/wp-content/uploads/2022/06/beyonce-Lemonade-album-art-billboard-1240.jpg?w=1024",
+      "is_local": true
+    },
+    {
+      "id": 0,
+      "title": "Stairway to Heaven",
+      "artist": "Led Zeppelin",
+      "album": "Led Zeppelin IV",
+      "duration": 65,
+      "image_url": "https://www.billboard.com/wp-content/uploads/2023/07/asap-rocky-long-live-asap-2013-billboard-1240.jpg?w=1024",
+      "is_local": true
+    },
+    {
+      "id": 0,
+      "title": "Numb",
+      "artist": "Linking Park",
+      "album": "Meteora",
+      "duration": 140,
+      "image_url": "https://www.billboard.com/wp-content/uploads/2023/07/RM-Indigo-album-art-billboard-1240.jpg?w=1024",
+      "is_local": true
+    }
+  ]
+}
