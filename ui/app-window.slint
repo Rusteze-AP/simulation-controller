@@ -297,10 +297,10 @@ export component RightMenu inherits Window{
 
     // TODO: sistemare posizionamento per connessioni (non in base all'id)
     for i in self.selected_drone.adjent: Button {
-        width: 200px;
-        height: 50px;
-        preferred-height: 100%;
-        preferred-width: 100%;
+        preferred-width: 200px;
+        preferred-height: 50px;
+        // preferred-height: 100%;
+        // preferred-width: 100%;
         text: "Remove connection with " + i;
         x: 0px;
         y: 250px + i*50px;
@@ -316,10 +316,10 @@ export component RightMenu inherits Window{
     }
 
     for d in self.selected_drone.not_adjacent: Button{
-        width: 200px;
-        height: 50px;
-        preferred-height: 100%;
-        preferred-width: 100%;
+        preferred-width: 200px;
+        preferred-height: 50px;
+        // preferred-height: 100%;
+        // preferred-width: 100%;
         text: "Add connection with " + d;
         x: 200px;
         y: 250px + d*50px;
@@ -333,10 +333,8 @@ export component RightMenu inherits Window{
 
 component BottomWindow inherits Window{
     callback select_new_file();
-    width: 200px;
-    height: 50px;
-    preferred-height: 100%;
-    preferred-width: 100%;
+    preferred-height: 50px;
+    preferred-width: 200px;
     GridLayout {
         Row{
             Button {
