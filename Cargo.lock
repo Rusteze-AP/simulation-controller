@@ -107,7 +107,7 @@ dependencies = [
  "accesskit_unix",
  "accesskit_windows",
  "raw-window-handle",
- "winit 0.30.8",
+ "winit 0.30.9",
 ]
 
 [[package]]
@@ -291,7 +291,7 @@ dependencies = [
 [[package]]
 name = "ap2024_unitn_cppenjoyers_drone"
 version = "0.9.0"
-source = "git+ssh://git@github.com/Cpp-enjoyers/drone.git#5c13f78fe4b8edb02bff81d340bc080f3e7ca4ce"
+source = "git+ssh://git@github.com/Cpp-enjoyers/drone.git#d328f66bd3a12257b89de7c64cd09f2a49c605c3"
 dependencies = [
  "crossbeam-channel",
  "log",
@@ -709,7 +709,7 @@ dependencies = [
  "bitflags 2.8.0",
  "cexpr",
  "clang-sys",
- "itertools 0.12.1",
+ "itertools 0.13.0",
  "proc-macro2",
  "quote",
  "regex",
@@ -1019,19 +1019,41 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4bfbf56724aa9eca8afa4fcfadeb479e722935bb2a0900c2d37e0cc477af0688"
 
 [[package]]
-name = "client-audio"
+name = "client"
 version = "0.1.0"
-source = "git+ssh://git@github.com/Rusteze-AP/client-audio.git?branch=main#c9d6d1541ebf8b6d5da659d75719e29bf4b50366"
+source = "git+ssh://git@github.com/Rusteze-AP/client.git?branch=main#240a318146e2a323ebfd19792a5d438d5581ce5b"
 dependencies = [
  "base64 0.21.7",
  "bincode",
+ "bytes",
+ "chrono",
+ "crossbeam",
+ "logger 0.1.0 (git+https://github.com/Rusteze-AP/logger.git?branch=main)",
+ "packet_forge 0.1.0 (git+ssh://git@github.com/Rusteze-AP/packet-forge.git?branch=main)",
+ "parking_lot 0.12.3",
+ "rocket",
+ "routing-handler 0.1.0 (git+ssh://git@github.com/Rusteze-AP/routing-handler.git?branch=main)",
+ "serde",
+ "serde_json",
+ "sled",
+ "tokio",
+ "wg_internal",
+]
+
+[[package]]
+name = "client-audio"
+version = "0.1.0"
+dependencies = [
+ "base64 0.21.7",
+ "bincode",
+ "bytes",
  "crossbeam",
  "crossbeam-channel",
  "logger 0.1.0 (git+https://github.com/Rusteze-AP/logger.git?branch=main)",
  "packet_forge 0.1.0 (git+ssh://git@github.com/Rusteze-AP/packet-forge.git?branch=main)",
  "rocket",
  "rodio",
- "routing-handler 0.1.0 (git+ssh://git@github.com/Rusteze-AP/routing-handler.git?branch=main)",
+ "routing-handler 0.1.0 (git+ssh://git@github.com/Rusteze-AP/routing-handler.git)",
  "serde",
  "serde_json",
  "sled",
@@ -1043,17 +1065,18 @@ dependencies = [
 [[package]]
 name = "client-audio"
 version = "0.1.0"
-source = "git+ssh://git@github.com/Rusteze-AP/client-audio.git#c9d6d1541ebf8b6d5da659d75719e29bf4b50366"
+source = "git+ssh://git@github.com/Rusteze-AP/client-audio.git?branch=main#d48e243d0250e1c87cf12e76380a461b957220fa"
 dependencies = [
  "base64 0.21.7",
  "bincode",
+ "bytes",
  "crossbeam",
  "crossbeam-channel",
  "logger 0.1.0 (git+https://github.com/Rusteze-AP/logger.git?branch=main)",
  "packet_forge 0.1.0 (git+ssh://git@github.com/Rusteze-AP/packet-forge.git?branch=main)",
  "rocket",
  "rodio",
- "routing-handler 0.1.0 (git+ssh://git@github.com/Rusteze-AP/routing-handler.git?branch=main)",
+ "routing-handler 0.1.0 (git+ssh://git@github.com/Rusteze-AP/routing-handler.git)",
  "serde",
  "serde_json",
  "sled",
@@ -2278,7 +2301,7 @@ dependencies = [
  "cfg_aliases 0.2.1",
  "glutin",
  "raw-window-handle",
- "winit 0.30.8",
+ "winit 0.30.9",
 ]
 
 [[package]]
@@ -2606,7 +2629,7 @@ dependencies = [
  "vtable",
  "wasm-bindgen",
  "web-sys",
- "winit 0.30.8",
+ "winit 0.30.9",
 ]
 
 [[package]]
@@ -3591,7 +3614,8 @@ name = "network-initializer"
 version = "0.1.0"
 dependencies = [
  "ap2024_unitn_cppenjoyers_drone",
- "client-audio 0.1.0 (git+ssh://git@github.com/Rusteze-AP/client-audio.git)",
+ "client",
+ "client-audio 0.1.0",
  "crossbeam",
  "ctrlc",
  "lockheedrustin-drone",
@@ -3600,7 +3624,7 @@ dependencies = [
  "rust-roveri",
  "rust_do_it",
  "rustbusters-drone",
- "rusteze_drone",
+ "rusteze_drone 0.1.0 (git+ssh://git@github.com/Rusteze-AP/drone.git?branch=main)",
  "rusty_drones",
  "serde",
  "server",
@@ -4060,9 +4084,9 @@ dependencies = [
 
 [[package]]
 name = "once_cell"
-version = "1.20.2"
+version = "1.20.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1261fe7e33c73b354eab43b1273a57c8f967d0391e80353e51f764ac02cf6775"
+checksum = "945462a4b81e43c4e3ba96bd7b49d834c6f61198356aa858733bc4acf3cbe62e"
 dependencies = [
  "critical-section",
  "portable-atomic",
@@ -4105,7 +4129,7 @@ dependencies = [
 [[package]]
 name = "packet_forge"
 version = "0.1.0"
-source = "git+ssh://git@github.com/Rusteze-AP/packet-forge.git?branch=main#dc1e8b12b370708a5872d903f63c5316e7d661db"
+source = "git+ssh://git@github.com/Rusteze-AP/packet-forge.git?branch=main#de26cdf851c153b9a828ad5b487087d37a75a647"
 dependencies = [
  "bytes",
  "crossbeam-channel",
@@ -4119,7 +4143,7 @@ dependencies = [
 [[package]]
 name = "packet_forge"
 version = "0.1.0"
-source = "git+ssh://git@github.com/Rusteze-AP/packet-forge.git#dc1e8b12b370708a5872d903f63c5316e7d661db"
+source = "git+ssh://git@github.com/Rusteze-AP/packet-forge.git#de26cdf851c153b9a828ad5b487087d37a75a647"
 dependencies = [
  "bytes",
  "crossbeam-channel",
@@ -4471,7 +4495,7 @@ checksum = "3779b94aeb87e8bd4e834cee3650289ee9e0d5677f976ecdb6d219e5f4f6cd94"
 dependencies = [
  "rand_chacha 0.9.0",
  "rand_core 0.9.0",
- "zerocopy 0.8.16",
+ "zerocopy 0.8.17",
 ]
 
 [[package]]
@@ -4510,7 +4534,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b08f3c9802962f7e1b25113931d94f43ed9725bebc59db9d0c3e9a23b67e15ff"
 dependencies = [
  "getrandom 0.3.1",
- "zerocopy 0.8.16",
+ "zerocopy 0.8.17",
 ]
 
 [[package]]
@@ -4796,7 +4820,7 @@ dependencies = [
 [[package]]
 name = "routing-handler"
 version = "0.1.0"
-source = "git+ssh://git@github.com/Rusteze-AP/routing-handler.git?branch=main#26db8cf4151797aa690ab435307b68ae4dff0d9f"
+source = "git+ssh://git@github.com/Rusteze-AP/routing-handler.git?branch=main#52262dbf15d3d63775fca669dae6dfe5d5dd7794"
 dependencies = [
  "wg_internal",
 ]
@@ -4804,7 +4828,7 @@ dependencies = [
 [[package]]
 name = "routing-handler"
 version = "0.1.0"
-source = "git+ssh://git@github.com/Rusteze-AP/routing-handler.git#26db8cf4151797aa690ab435307b68ae4dff0d9f"
+source = "git+ssh://git@github.com/Rusteze-AP/routing-handler.git#52262dbf15d3d63775fca669dae6dfe5d5dd7794"
 dependencies = [
  "wg_internal",
 ]
@@ -4830,7 +4854,7 @@ checksum = "6c20b6793b5c2fa6553b250154b78d6d0db37e72700ae35fad9387a46f487c97"
 [[package]]
 name = "rust-roveri"
 version = "0.1.0"
-source = "git+ssh://git@github.com/RustRoveri/rust-roveri.git#eee9ce6c14b262f20bc1d7c18a60deb1f367d5ad"
+source = "git+ssh://git@github.com/RustRoveri/rust-roveri.git#2bababfeb0fb77f89f69363ddf6c2c2774ab1915"
 dependencies = [
  "bit-set",
  "crossbeam-channel",
@@ -4842,7 +4866,7 @@ dependencies = [
 [[package]]
 name = "rust_do_it"
 version = "0.1.0"
-source = "git+ssh://git@github.com/RustDoIt/Drone.git#cd8367ba4ed6546dabf15e5eecdc3d40c01bc9c0"
+source = "git+ssh://git@github.com/RustDoIt/Drone.git#844f691564b98ad5f7fe665bd84ca35032c2dda1"
 dependencies = [
  "crossbeam-channel",
  "env_logger 0.11.6",
@@ -4855,7 +4879,7 @@ dependencies = [
 [[package]]
 name = "rustbusters-drone"
 version = "1.0.0"
-source = "git+ssh://git@github.com/Rustbusters/drone.git#98b30e3cc16b6211687a8caf2c24ee7d6f5ef73a"
+source = "git+ssh://git@github.com/Rustbusters/drone.git#df312365fe1dba728d9265619d9ec27c221a72aa"
 dependencies = [
  "crossbeam-channel",
  "lazy_static",
@@ -4898,6 +4922,18 @@ dependencies = [
 name = "rusteze_drone"
 version = "0.1.0"
 source = "git+ssh://git@github.com/Rusteze-AP/drone.git?branch=debug#74a823b8ee99036c75cfca4a010fc42d549d4624"
+dependencies = [
+ "crossbeam",
+ "logger 0.1.0 (git+https://github.com/Rusteze-AP/logger.git?branch=main)",
+ "rand 0.8.5",
+ "rusteze-tests",
+ "wg_internal",
+]
+
+[[package]]
+name = "rusteze_drone"
+version = "0.1.0"
+source = "git+ssh://git@github.com/Rusteze-AP/drone.git?branch=main#9e6c69b3996379a9fbaf01844d1d88bd9bb2e92c"
 dependencies = [
  "crossbeam",
  "logger 0.1.0 (git+https://github.com/Rusteze-AP/logger.git?branch=main)",
@@ -5103,7 +5139,7 @@ dependencies = [
 [[package]]
 name = "server"
 version = "0.1.0"
-source = "git+ssh://git@github.com/Rusteze-AP/server.git?branch=main#a6fd7c832a7de5005244a2c8acb40ef2f9acb66a"
+source = "git+ssh://git@github.com/Rusteze-AP/server.git?branch=main#07127bcbfae2310a0f8693b1a684174b3e380030"
 dependencies = [
  "bincode",
  "bytes",
@@ -5206,7 +5242,7 @@ dependencies = [
 [[package]]
 name = "skylink"
 version = "0.1.0"
-source = "git+ssh://git@github.com/Suge42/Skylink_drone.git#c11d0e0e641eaaaa54bab3d5671110a63a2229a9"
+source = "git+ssh://git@github.com/Suge42/Skylink_drone.git#9cf0969fea9d5f481fcd99bd59d0db994197f507"
 dependencies = [
  "crossbeam-channel",
  "fastrand",
@@ -5293,7 +5329,7 @@ dependencies = [
  "network-initializer",
  "packet_forge 0.1.0 (git+ssh://git@github.com/Rusteze-AP/packet-forge.git?branch=main)",
  "rfd",
- "rusteze_drone",
+ "rusteze_drone 0.1.0 (git+ssh://git@github.com/Rusteze-AP/drone.git?branch=debug)",
  "server",
  "slint",
  "slint-build",
@@ -5866,9 +5902,9 @@ dependencies = [
 
 [[package]]
 name = "toml"
-version = "0.8.19"
+version = "0.8.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a1ed1f98e3fdc28d6d910e6737ae6ab1a93bf1985935a1193e68f93eeb68d24e"
+checksum = "cd87a5cdd6ffab733b2f74bc4fd7ee5fff6634124999ac278c35fc78c6120148"
 dependencies = [
  "serde",
  "serde_spanned",
@@ -6692,7 +6728,7 @@ version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf221c93e13a30d793f7645a0e7762c55d169dbb0a49671918a2319d289b10bb"
 dependencies = [
- "windows-sys 0.48.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -7076,9 +7112,9 @@ dependencies = [
 
 [[package]]
 name = "winit"
-version = "0.30.8"
+version = "0.30.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f5d74280aabb958072864bff6cfbcf9025cf8bfacdde5e32b5e12920ef703b0f"
+checksum = "a809eacf18c8eca8b6635091543f02a5a06ddf3dad846398795460e6e0ae3cc0"
 dependencies = [
  "ahash",
  "android-activity 0.6.0",
@@ -7380,7 +7416,7 @@ dependencies = [
  "xdg-home",
  "zbus_macros 5.4.0",
  "zbus_names 4.2.0",
- "zvariant 5.3.0",
+ "zvariant 5.4.0",
 ]
 
 [[package]]
@@ -7431,7 +7467,7 @@ dependencies = [
  "quote",
  "syn",
  "zbus_names 4.2.0",
- "zvariant 5.3.0",
+ "zvariant 5.4.0",
  "zvariant_utils 3.2.0",
 ]
 
@@ -7455,7 +7491,7 @@ dependencies = [
  "serde",
  "static_assertions",
  "winnow",
- "zvariant 5.3.0",
+ "zvariant 5.4.0",
 ]
 
 [[package]]
@@ -7483,11 +7519,11 @@ dependencies = [
 
 [[package]]
 name = "zerocopy"
-version = "0.8.16"
+version = "0.8.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7b8c07a70861ce02bad1607b5753ecb2501f67847b9f9ada7c160fff0ec6300c"
+checksum = "aa91407dacce3a68c56de03abe2760159582b846c6a4acd2f456618087f12713"
 dependencies = [
- "zerocopy-derive 0.8.16",
+ "zerocopy-derive 0.8.17",
 ]
 
 [[package]]
@@ -7503,9 +7539,9 @@ dependencies = [
 
 [[package]]
 name = "zerocopy-derive"
-version = "0.8.16"
+version = "0.8.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5226bc9a9a9836e7428936cde76bb6b22feea1a8bfdbc0d241136e4d13417e25"
+checksum = "06718a168365cad3d5ff0bb133aad346959a2074bd4a85c121255a11304a8626"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -7580,9 +7616,9 @@ dependencies = [
 
 [[package]]
 name = "zvariant"
-version = "5.3.0"
+version = "5.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "31c951c21879c6e1d46ac5adfc34f698fefb465d498cf4ac87545849bd71bb5a"
+checksum = "b2df9ee044893fcffbdc25de30546edef3e32341466811ca18421e3cd6c5a3ac"
 dependencies = [
  "endi",
  "enumflags2",
@@ -7590,7 +7626,7 @@ dependencies = [
  "static_assertions",
  "url",
  "winnow",
- "zvariant_derive 5.3.0",
+ "zvariant_derive 5.4.0",
  "zvariant_utils 3.2.0",
 ]
 
@@ -7609,9 +7645,9 @@ dependencies = [
 
 [[package]]
 name = "zvariant_derive"
-version = "5.3.0"
+version = "5.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9eeb539471af098d9e63faf428c71ac4cd4efe0b5baa3c8a6b991c5f2543b70e"
+checksum = "74170caa85b8b84cc4935f2d56a57c7a15ea6185ccdd7eadb57e6edd90f94b2f"
 dependencies = [
  "proc-macro-crate",
  "proc-macro2",

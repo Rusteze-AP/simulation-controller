@@ -1,0 +1,31 @@
+{
+  "songs": [
+    {
+      "id": 0,
+      "title": "Blood and Thunder",
+      "artist": "Mastodon",
+      "album": "Leviathan",
+      "duration": 118,
+      "image_url": "https://upload.wikimedia.org/wikipedia/en/d/d8/Mastodonleviathan.jpg",
+      "is_local": true
+    },
+    {
+      "id": 0,
+      "title": "Lonely Day",
+      "artist": "System of a Down",
+      "album": "Hypnotize",
+      "duration": 65,
+      "image_url": "https://upload.wikimedia.org/wikipedia/en/9/9a/System_Of_A_Down-Hypnotize.jpg",
+      "is_local": true
+    },
+    {
+      "id": 0,
+      "title": "Billie Jean",
+      "artist": "Michael Jackson",
+      "album": "Thriller",
+      "duration": 140,
+      "image_url": "https://upload.wikimedia.org/wikipedia/en/5/55/Michael_Jackson_-_Thriller.png",
+      "is_local": true
+    }
+  ]
+}

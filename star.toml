@@ -1,0 +1,61 @@
+[[drones]]
+id = 1
+connected_drone_ids = [4,8]
+pdr = 0.1
+
+[[drones]]
+id = 2
+connected_drone_ids = [5,9]
+pdr = 0.1
+
+[[drones]]
+id = 3
+connected_drone_ids = [6,10]
+pdr = 0.1
+
+[[drones]]
+id = 4
+connected_drone_ids = [1,7,21]
+pdr = 0.1
+
+[[drones]]
+id = 5
+connected_drone_ids = [2,8]
+pdr = 0.1
+
+[[drones]]
+id = 6
+connected_drone_ids = [3,9,20]
+pdr = 0.1
+
+[[drones]]
+id = 7
+connected_drone_ids = [4,10,30]
+pdr = 0.1
+
+[[drones]]
+id = 8
+connected_drone_ids = [1,5,30]
+pdr = 0.1
+
+[[drones]]
+id = 9
+connected_drone_ids = [2,6]
+pdr = 0.1
+
+[[drones]]
+id = 10
+connected_drone_ids = [3,7]
+pdr = 0.1
+
+[[clients]]
+id = 20
+connected_drone_ids = [6]
+
+[[clients]]
+id = 21
+connected_drone_ids = [4]
+
+[[servers]]
+id = 30
+connected_drone_ids = [7,8]

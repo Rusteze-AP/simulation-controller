@@ -1,17 +1,17 @@
 [[drones]]
 id = 1
 connected_drone_ids = [20, 30, 3]
-pdr = 0.0
+pdr = 0.9
 
 [[drones]]
 id = 2
 connected_drone_ids = [3]
-pdr = 0.0
+pdr = 0.9
 
 [[drones]]
 id = 3
 connected_drone_ids = [2, 1]
-pdr = 0.0
+pdr = 0.9
 
 [[clients]]
 id = 20

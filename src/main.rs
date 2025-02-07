@@ -15,6 +15,8 @@ use packet_forge::ClientType;
 use logger::{Logger, LogLevel};
 
 
+const PATH: &str = "star.toml";
+
 fn check_edges(edges: &Vec<Edge>, id1: i32, id2: i32) -> bool {
     for edge in edges {
         if (edge.id1 == id1 && edge.id2 == id2) || (edge.id1 == id2 && edge.id2 == id1) {
@@ -160,7 +162,7 @@ fn main() -> Result<(), slint::PlatformError> {
     window.set_fullscreen(true);
 
     //initial configuration -> default
-    let network_initializer: Arc<Mutex<Result<NetworkInitializer, ConfigError>>> = Arc::new(Mutex::new(NetworkInitializer::new(Some("test.toml"))));
+    let network_initializer: Arc<Mutex<Result<NetworkInitializer, ConfigError>>> = Arc::new(Mutex::new(NetworkInitializer::new(Some(PATH))));
     let mut sc_receiver: Arc<Mutex<Option<Receiver<DroneEvent>>>> = Arc::new(Mutex::new(None));
     let mut sc_senders: Arc<Mutex<Option<HashMap<NodeId, Sender<DroneCommand>>>>> = Arc::new(Mutex::new(None));
     let mut channels: Arc<Mutex<Option<HashMap<NodeId, Channel<Packet>>>>> = Arc::new(Mutex::new(None));
@@ -931,7 +933,7 @@ fn main() -> Result<(), slint::PlatformError> {
             }
         }
 
-
+        
         // if it is valid, clean up all structures
         match NetworkInitializer::new(Some(&new_path)){
             Ok(net_init)=>{
