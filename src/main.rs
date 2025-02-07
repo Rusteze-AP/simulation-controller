@@ -5,7 +5,7 @@ use slint::{Model, ModelRc, VecModel};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::thread;
-use wg_internal::controller::{DroneCommand, DroneEvent};
+use wg_internal::{config::Client, controller::{DroneCommand, DroneEvent}};
 use wg_internal::network::NodeId;
 use wg_internal::packet::Packet;
 use network_initializer::channel::Channel;
@@ -15,7 +15,9 @@ use packet_forge::ClientType;
 use logger::{Logger, LogLevel};
 
 
-const PATH: &str = "star.toml";
+const PATH: &str = "test.toml";    
+const CLIENT_T : ClientType = ClientType::Video;
+const DRONE : DroneType = DroneType::RustezeDrone;
 
 fn check_edges(edges: &Vec<Edge>, id1: i32, id2: i32) -> bool {
     for edge in edges {
@@ -197,7 +199,7 @@ fn main() -> Result<(), slint::PlatformError> {
     thread::spawn(move || {
         logger_.lock().unwrap().log_debug("Simulation started");
         if let Ok(ref mut c) = *network_initializer_run_simulation.lock().unwrap() {
-            match c.run_simulation(Some(vec![DroneType::RustezeDrone]), None){
+            match c.run_simulation(Some(vec![DRONE]), Some(vec![CLIENT_T])) {
                 Ok(_) => {
                     logger_.lock().unwrap().log_debug("Simulation ended correctly");
                 }
@@ -216,7 +218,7 @@ fn main() -> Result<(), slint::PlatformError> {
     thread::spawn(move ||{
         loop{
             if let Some(sc_rec) = sc_receiver_.lock().unwrap().as_ref(){
-                    match sc_rec.recv(){
+                    match sc_rec.try_recv(){
                         // PacketDropped
                         Ok(DroneEvent::PacketDropped(packet)) => {
                             logger_.lock().unwrap().log_debug(&format!("PacketDropped received {:?}", packet));
@@ -1027,6 +1029,9 @@ fn main() -> Result<(), slint::PlatformError> {
                 }
 
                 // set new config
+                while network_initializer_.try_lock().is_err() {
+                    // thread::sleep(Duration::from_millis(100));
+                }
                 *network_initializer_.lock().unwrap() = Ok(net_init);
                 failed = false;
             },
@@ -1056,6 +1061,7 @@ fn main() -> Result<(), slint::PlatformError> {
                     window.set_clients(slint::ModelRc::new(slint::VecModel::from(clients)));
                     window.set_drones(slint::ModelRc::new(slint::VecModel::from(drones)));
                     window.set_servers(slint::ModelRc::new(slint::VecModel::from(servers)));
+                    window.set_messages(slint::ModelRc::new(slint::VecModel::from(vec![])));
                 }
                 
             }
@@ -1065,7 +1071,7 @@ fn main() -> Result<(), slint::PlatformError> {
             let logger1= logger_.clone();
             thread::spawn(move || {
                 if let Ok(ref mut c)= *network_initializer_run_simulation.lock().unwrap() {
-                    match c.run_simulation(Some(vec![DroneType::RustezeDrone]), Some(vec![ClientType::Song])){
+                    match c.run_simulation(Some(vec![DRONE]), Some(vec![CLIENT_T])){
                         Ok(_)=>{
                             logger1.lock().unwrap().log_debug("[ON_SELECT_NEW_FILE] Simulation correctly ended");
                         },
