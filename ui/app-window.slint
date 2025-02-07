@@ -403,7 +403,7 @@ export component Window inherits Window {
         preferred-height: 100%;
         preferred-width: 100%;
         x: parent.width/5;
-        y: parent.height/3 +i*175px;
+        y: parent.height/3 +i*parent.height/6;
         label_id: "Client" + client.id;
         background: red;
 
@@ -419,8 +419,8 @@ export component Window inherits Window {
         height: 64px;
         preferred-height: 100%;
         preferred-width: 100%;
-        x: parent.width/5 + 2*parent.height / 3 + 275px;
-        y: parent.height/3 +i*175px;
+        x: parent.width/5 + 2*parent.height / 3 + parent.width/7;
+        y: parent.height/3 +i*parent.height/6;
         label_id: "Server" + server.id;
         background: green;
 
