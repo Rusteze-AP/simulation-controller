@@ -15,7 +15,7 @@ use packet_forge::ClientType;
 use logger::{Logger, LogLevel};
 
 
-const PATH: &str = "test.toml";    
+const PATH: &str = "star.toml";    
 const CLIENT_T : ClientType = ClientType::Video;
 // const DRONE : DroneType = DroneType::RustezeDrone;
 

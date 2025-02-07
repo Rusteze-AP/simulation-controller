@@ -344,6 +344,7 @@ export component Window inherits Window {
     callback change_pdr();
 
     in-out property <int> id_selected_drone;
+    in-out property <float> node_size : self.width/30px;
     in-out property <int> position_selected_drone: 0;
     in-out property <int> id_selected_client_server;
     in-out property <int> postition_selected_client_server: 0;
@@ -361,10 +362,10 @@ export component Window inherits Window {
     background: #000000;
 
     for edge[i] in edges: Edge{
-        x1: edges[i].id1<20 ? (parent.width/2.15 + (parent.height / 3) * cos(2 * 1rad * 3.14159 * edges[i].id1 /10) + (64px / 2) +32px)/1px : (edges[i].id1<30 ?  (parent.width/5 +32px)/1px : (parent.width/5 + 2*parent.height / 3 + parent.width/7 +32px)/1px) ;
-        y1: edges[i].id1<20 ?(parent.height/2.5 +(parent.height / 3) * sin(2 * 1rad* 3.14159 * edges[i].id1 / 10) + (64px / 3) +32px)/1px: ( edges[i].id1<30 ? (parent.height/3 +(edges[i].id1 - 20) *parent.height/6 +32px)/1px : (parent.height/3 +(edges[i].id1 -30)*parent.height/6 + 32px)/1px);
-        x2: edges[i].id2<20 ? (parent.width/2.15 + (parent.height / 3) * cos(2 * 1rad * 3.14159 * edges[i].id2 /10) + (64px / 2) +32px)/1px : (edges[i].id2<30 ?  (parent.width/5 +32px)/1px : (parent.width/5 + 2*parent.height / 3 + parent.width/7 +32px)/1px);
-        y2: edges[i].id2<20 ?(parent.height/2.5 +(parent.height / 3) * sin(2 * 1rad* 3.14159 * edges[i].id2 / 10) + (64px / 3) +32px)/1px: ( edges[i].id2<30 ? (parent.height/3 +(edges[i].id2 - 20) *parent.height/6 +32px)/1px : (parent.height/3 +(edges[i].id2 -30)*parent.height/6 + 32px)/1px);
+        x1: edges[i].id1<20 ? (parent.width/2.15 + (parent.height / 4) * cos(2 * 1rad * 3.14159 * edges[i].id1 /10) + (node_size*1px / 2) + 1px*node_size/2)/1px : (edges[i].id1<30 ?  (parent.width/4 +1px*node_size/2)/1px : (parent.width - parent.width/3 +1px*node_size/2)/1px) ;
+        y1: edges[i].id1<20 ?(parent.height/2.5 +(parent.height / 4) * sin(2 * 1rad* 3.14159 * edges[i].id1 / 10) + (node_size*1px / 3) +1px*node_size/2)/1px: ( edges[i].id1<30 ? (parent.height/3 +(edges[i].id1 - 20) *parent.height/6 +1px*node_size/2)/1px : (parent.height/3 +(edges[i].id1 -30)*parent.height/6 + 1px*node_size/2)/1px);
+        x2: edges[i].id2<20 ? (parent.width/2.15 + (parent.height / 4) * cos(2 * 1rad * 3.14159 * edges[i].id2 /10) + (node_size*1px / 2) +1px*node_size/2)/1px : (edges[i].id2<30 ?  (parent.width/4 +1px*node_size/2)/1px : (parent.width - parent.width/3 +1px*node_size/2)/1px);
+        y2: edges[i].id2<20 ?(parent.height/2.5 +(parent.height / 4) * sin(2 * 1rad* 3.14159 * edges[i].id2 / 10) + (node_size*1px / 3) +1px*node_size/2)/1px: ( edges[i].id2<30 ? (parent.height/3 +(edges[i].id2 - 20) *parent.height/6 +1px*node_size/2)/1px : (parent.height/3 +(edges[i].id2 -30)*parent.height/6 + 1px*node_size/2)/1px);
 
         x: self.x1 < self.x2 ? self.x1*1px   : self.x2*1px ;
         y: self.y1 < self.y2 ? self.y1*1px : self.y2*1px;
@@ -377,11 +378,11 @@ export component Window inherits Window {
     }
 
     for drone[i] in drones : Drone {
-        width: 64px;
-        height: 64px;
+        width: node_size*1px;
+        height: node_size*1px;
         // circular positioning
-        x: parent.width/2.15 + (parent.height / 3) * cos(2 * 1rad * 3.14159 * drone.id /10) + (self.width / 2);
-        y: parent.height/2.5 +(parent.height / 3) * sin(2 * 1rad* 3.14159 * drone.id / 10) + (self.height / 3);
+        x: parent.width/2.15 + (parent.height / 4) * cos(2 * 1rad * 3.14159 * drone.id /10) + (self.width / 2);
+        y: parent.height/2.5 +(parent.height / 4) * sin(2 * 1rad* 3.14159 * drone.id / 10) + (self.height / 3);
         label_id: "Drone" + drone.id;
         background: !drone.crashed ? #3960D5 : #98abe6.mix(#e8e8e9, 0.5 + 0.5* Math.sin(animation-tick()/1s * 1turn));
 
@@ -395,11 +396,11 @@ export component Window inherits Window {
 
 
     for client[i] in clients : ClientServer {
-        width: 64px;
-        height: 64px;
+        width: node_size*1px;
+        height: node_size*1px;
         preferred-height: 100%;
         preferred-width: 100%;
-        x: parent.width/5;
+        x: parent.width/4;
         y: parent.height/3 +i*parent.height/6;
         label_id: "Client" + client.id;
         background: red;
@@ -412,11 +413,12 @@ export component Window inherits Window {
     }
 
     for server[i] in servers : ClientServer {
-        width: 64px;
-        height: 64px;
+        width: node_size*1px;
+        height: node_size*1px;
         preferred-height: 100%;
         preferred-width: 100%;
-        x: parent.width/5 + 2*parent.height / 3 + parent.width/7;
+        // x: parent.width/5 + 2*parent.height/4+ parent.width/7;
+        x: parent.width - parent.width/3;
         y: parent.height/3 +i*parent.height/6;
         label_id: "Server" + server.id;
         background: green;
@@ -429,11 +431,11 @@ export component Window inherits Window {
 
     // TODO: sistemare posizione, colore, ecc.
     LeftMenu {
-        width: parent.width/7;
+        width: parent.width/5;
         height: parent.height;
 
         x: 0;
-        y: parent.height/5;
+        y: parent.height/8;
         label_id: id_selected_client_server<30? "client" + id_selected_client_server : "server" + id_selected_client_server;
         selected: id_selected_client_server<30? clients[postition_selected_client_server] : servers[postition_selected_client_server];
 
@@ -454,11 +456,11 @@ export component Window inherits Window {
 
     // TODO: sistemare posizione, colore, ecc.
     RightMenu {
-        width: parent.width/7;
+        width: parent.width/5;
         height: parent.height;
 
         x: parent.width - self.width;
-        y: parent.height/5;
+        y: parent.height/8;
         label_id: "drone" + id_selected_drone;
         selected_drone: drones[position_selected_drone];
 
@@ -497,10 +499,10 @@ export component Window inherits Window {
 
 
     for message[i] in messages : Message {
-        current_x: messages[i].id1<20 ? (parent.width/2.15 + (parent.height / 3) * cos(2 * 1rad * 3.14159 * messages[i].id1 /10) + (64px / 2) +32px)/1px : (messages[i].id1<30 ?  (parent.width/5 +32px)/1px : (parent.width/5 + 2*parent.height / 3 + parent.width/7 +32px)/1px) ;
-        current_y: messages[i].id1<20 ?(parent.height/2.5 +(parent.height / 3) * sin(2 * 1rad* 3.14159 * messages[i].id1 / 10) + (64px / 3) +32px)/1px: ( messages[i].id1<30 ? (parent.height/3 +(messages[i].id1 - 20) *parent.height/6 +32px)/1px : (parent.height/3 +(messages[i].id1 -30)*parent.height/6 + 32px)/1px);
-        end_x: messages[i].id2<20 ? (parent.width/2.15 + (parent.height / 3) * cos(2 * 1rad * 3.14159 * messages[i].id2 /10) + (64px / 2) +32px)/1px : (messages[i].id2<30 ?  (parent.width/5 +32px)/1px : (parent.width/5 + 2*parent.height / 3 + parent.width/7 +32px)/1px);
-        end_y: messages[i].id2<20 ?(parent.height/2.5 +(parent.height / 3) * sin(2 * 1rad* 3.14159 * messages[i].id2 / 10) + (64px / 3) +32px)/1px: ( messages[i].id2<30 ? (parent.height/3 +(messages[i].id2 - 20) *parent.height/6 +32px)/1px : (parent.height/3 +(messages[i].id2 -30)*parent.height/6 + 32px)/1px);
+        current_x: messages[i].id1<20 ? (parent.width/2.15 + (parent.height / 4) * cos(2 * 1rad * 3.14159 * messages[i].id1 /10) + (node_size*1px / 2) +1px*node_size/2)/1px : (messages[i].id1<30 ?  (parent.width/4 +1px*node_size/2)/1px : (parent.width - parent.width/3 +1px*node_size/2)/1px) ;
+        current_y: messages[i].id1<20 ?(parent.height/2.5 +(parent.height / 4) * sin(2 * 1rad* 3.14159 * messages[i].id1 / 10) + (node_size*1px / 3) +1px*node_size/2)/1px: ( messages[i].id1<30 ? (parent.height/3 +(messages[i].id1 - 20) *parent.height/6 +1px*node_size/2)/1px : (parent.height/3 +(messages[i].id1 -30)*parent.height/6 + 1px*node_size/2)/1px);
+        end_x: messages[i].id2<20 ? (parent.width/2.15 + (parent.height / 4) * cos(2 * 1rad * 3.14159 * messages[i].id2 /10) + (node_size*1px / 2) +1px*node_size/2)/1px : (messages[i].id2<30 ?  (parent.width/4 +1px*node_size/2)/1px : (parent.width - parent.width/3 +1px*node_size/2)/1px);
+        end_y: messages[i].id2<20 ?(parent.height/2.5 +(parent.height / 4) * sin(2 * 1rad* 3.14159 * messages[i].id2 / 10) + (node_size*1px / 3) +1px*node_size/2)/1px: ( messages[i].id2<30 ? (parent.height/3 +(messages[i].id2 - 20) *parent.height/6 +1px*node_size/2)/1px : (parent.height/3 +(messages[i].id2 -30)*parent.height/6 + 1px*node_size/2)/1px);
 
         step_x: (self.end_x - self.current_x) / self.counter;
         step_y: (self.end_y - self.current_y) / self.counter;
