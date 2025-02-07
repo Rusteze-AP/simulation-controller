@@ -25,7 +25,7 @@ struct Edge{
 struct Message{
     id1: int,
     id2: int,
-    msg_type: int, // 0 = packetSent, 1 packetDropped, 2 ControllerShortcut
+    msg_type: int, // 0 = packetSent-msgFragment, 1 packetSent-ack, 2 packetSent-Nack, 3 = packetSent-FloodRequest,  4=packetSent-FloodResponse, 5=packetDropped, 6=controllerShortcut
 }
 
 component Drone inherits Rectangle{
@@ -87,7 +87,7 @@ component Edge inherits Path {
     in-out property <float> end_x;
     in-out property <float> end_y;
 
-    stroke: #ffffff;
+    // stroke: #ffffff;
     stroke-width: 2px;
 
     MoveTo {
@@ -157,7 +157,7 @@ export component LeftMenu inherits Window{
         height: parent.height/20;
         preferred-height: 100%;
         preferred-width: 100%;
-        text: "Remove connection with " + i;
+        text: "Remove link with " + i;
         x: 0px;
         y: parent.height/20 + i*parent.height/20;
 
@@ -174,9 +174,8 @@ export component LeftMenu inherits Window{
     for d in self.selected.drones_not_adjacent: Button{
         width: parent.width/2;
         height: parent.height/20;
-        preferred-height: 100%;
-        preferred-width: 100%;
-        text: "Add connection with " + d;
+        text: "Add link with " + d;
+        
         x: parent.width/2;
         y: parent.height/20 + d*parent.height/20;
         clicked => {
@@ -210,6 +209,7 @@ export component RightMenu inherits Window{
         border-color: black;
         border-width: 0.5px;
         Text {
+            width: parent.width;
             y: parent.height/3;
             text: "Drone control : " + selected_drone.id; 
             horizontal-alignment: center;
@@ -217,6 +217,7 @@ export component RightMenu inherits Window{
             color: black;
         }
         Text {
+            width: parent.width;
             y: 2*parent.height/3;
             text: "Pdr : " + selected_drone.pdr; 
             horizontal-alignment: center;
@@ -284,7 +285,7 @@ export component RightMenu inherits Window{
         width: parent.width/2;
         height: parent.height/20;
 
-        text: "Remove connection with " + i;
+        text: "Remove link with " + i;
         x: 0px;
         y: 5*parent.height/20 + i*parent.height/20;
 
@@ -293,7 +294,7 @@ export component RightMenu inherits Window{
             if selected_drone.adjent.length > 1{
                 remove_edge();
             }else{
-                self.text = "Can't remove last connection";
+                self.text = "Can't remove last link";
             }
         }
     }
@@ -303,7 +304,7 @@ export component RightMenu inherits Window{
         preferred-height: parent.height/20;
         // preferred-height: 100%;
         // preferred-width: 100%;
-        text: "Add connection with " + d;
+        text: "Add link with " + d;
         x: parent.width/2;
         y: 5*parent.height/20 + d*parent.height/20;
         clicked => {
@@ -314,7 +315,7 @@ export component RightMenu inherits Window{
 
 }
 
-component BottomWindow inherits Window{
+component UpWindow inherits Window{
     callback select_new_file();
 
     GridLayout {
@@ -327,6 +328,91 @@ component BottomWindow inherits Window{
             }
         }
     }
+}
+
+component Legend inherits Window{
+    in property <int> width-size;
+    in property <int> height-size;
+
+    Rectangle{
+        background: #ffffff;
+        width: width-size*1px;
+        height: height-size*7px;
+
+        GridLayout {
+            Row{
+                Rectangle {
+                    width: width-size*1px;
+                    height: height-size*1px;
+                    background: #d5d239;
+                }
+                Text {
+                    text: "packetSent-msgFragment";
+                }
+            }
+            Row{
+                Rectangle {
+                    width: width-size*1px;
+                    height: height-size*1px;
+                    background: #52fc03;
+                }
+                Text {
+                    text: "packetSent-ack";
+                }
+            }
+            Row{
+                Rectangle {
+                    width: width-size*1px;
+                    height: height-size*1px;
+                    background: #fc0303;
+                }
+                Text {
+                    text: "packetSent-Nack";
+                }
+            }
+            Row{
+                Rectangle {
+                    width: width-size*1px;
+                    height: height-size*1px;
+                    background: #3f70da;
+                }
+                Text {
+                    text: "packetSent-FloodRequest";
+                }
+            }
+            Row{
+                Rectangle {
+                    width: width-size*1px;
+                    height: height-size*1px;
+                    background: #7b99db;
+                }
+                Text {
+                    text: "packetSent-FloodResponse";
+                }
+            }
+            Row{
+                Rectangle {
+                    width: width-size*1px;
+                    height: height-size*1px;
+                    background: #d87d7d;
+                }
+                Text {
+                    text: "packetDropped";
+                }
+            }
+            Row{
+                Rectangle {
+                    width: width-size*1px;
+                    height: height-size*1px;
+                    background: #2bccd8;
+                }
+                Text {
+                    text: "controllerShortcut";
+                }
+            }
+        }
+    }
+    
 }
 
 
@@ -346,7 +432,7 @@ export component Window inherits Window {
     in-out property <int> id_selected_drone;
     in-out property <float> node_size : self.width/30px;
     in-out property <int> position_selected_drone: 0;
-    in-out property <int> id_selected_client_server;
+    in-out property <int> id_selected_client_server: 20;
     in-out property <int> postition_selected_client_server: 0;
     in-out property <int> receiver_id;
     in-out property <int> sender_id;
@@ -375,6 +461,8 @@ export component Window inherits Window {
         start_y: 0;
         end_x: (self.x1 > self.x2 && self.y1 > self.y2) ||  (self.x2 > self.x1 && self.y2 > self.y1) ? self.width/1px : 0;
         end_y: self.height/1px;
+        // stroke : @linear-gradient(0deg, rgb(0,0,0), rgb(255,255,255)); -> bisognerebbe sapere la posizione nel vettore, cosa non scontata haha
+        stroke: #ffffff;
     }
 
     for drone[i] in drones : Drone {
@@ -506,7 +594,7 @@ export component Window inherits Window {
 
         step_x: (self.end_x - self.current_x) / self.counter;
         step_y: (self.end_y - self.current_y) / self.counter;
-        background: messages[i].msg_type == 0 ? #d5d239: messages[i].msg_type == 1 ?#d53939 :#39d5d2;
+        background: messages[i].msg_type == 0 ? #d5d239: messages[i].msg_type == 1 ? #52fc03: messages[i].msg_type == 2? #fc0303 : messages[i].msg_type == 3 ? #3f70da : messages[i].msg_type == 4 ? #7b99db : messages[i].msg_type == 5 ? #d87d7d : #2bccd8;
         move_message => {
             self.current_x += self.step_x;
             self.current_y += self.step_y;
@@ -522,7 +610,7 @@ export component Window inherits Window {
         }
     }
 
-    BottomWindow {
+    UpWindow {
         x: parent.width/2 - self.width/2;
         y: parent.height/20;
 
@@ -531,5 +619,11 @@ export component Window inherits Window {
         }
     }
 
+    Legend {
+        x: parent.width/2 - self.width/2;
+        y: parent.height - parent.height/20 - self.height;
+        width-size: parent.width/40px;
+        height-size: parent.height/50px;
+    }
 
 }
