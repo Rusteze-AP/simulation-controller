@@ -1,5 +1,5 @@
 slint::include_modules!();
-use crossbeam::channel::{ Receiver, Sender};
+use crossbeam::channel::{ Receiver, Sender, TryRecvError};
 use network_initializer::{errors::ConfigError, NetworkInitializer, parsed_nodes::{ParsedDrone, ParsedClient, ParsedServer}, DroneType};
 use slint::{Model, ModelRc, VecModel};
 use std::collections::HashMap;
@@ -17,7 +17,7 @@ use logger::{Logger, LogLevel};
 
 const PATH: &str = "test.toml";    
 const CLIENT_T : ClientType = ClientType::Video;
-const DRONE : DroneType = DroneType::RustezeDrone;
+// const DRONE : DroneType = DroneType::RustezeDrone;
 
 fn check_edges(edges: &Vec<Edge>, id1: i32, id2: i32) -> bool {
     for edge in edges {
@@ -199,7 +199,7 @@ fn main() -> Result<(), slint::PlatformError> {
     thread::spawn(move || {
         logger_.lock().unwrap().log_debug("Simulation started");
         if let Ok(ref mut c) = *network_initializer_run_simulation.lock().unwrap() {
-            match c.run_simulation(Some(vec![DRONE]), Some(vec![CLIENT_T])) {
+            match c.run_simulation(None, Some(vec![CLIENT_T])) {
                 Ok(_) => {
                     logger_.lock().unwrap().log_debug("Simulation ended correctly");
                 }
@@ -286,7 +286,10 @@ fn main() -> Result<(), slint::PlatformError> {
                                     logger_.lock().unwrap().log_error(&format!("Error sending message to window: {}", e));
                                 }
                             }
-                        }
+                        },
+                        Err(TryRecvError::Empty) => {
+                            // logger_.lock().unwrap().log_debug("Empty");
+                        },
                         Err(e) => {
                             logger_.lock().unwrap().log_error(&format!("Error receiving message: {}", e));
                         }
@@ -1071,7 +1074,7 @@ fn main() -> Result<(), slint::PlatformError> {
             let logger1= logger_.clone();
             thread::spawn(move || {
                 if let Ok(ref mut c)= *network_initializer_run_simulation.lock().unwrap() {
-                    match c.run_simulation(Some(vec![DRONE]), Some(vec![CLIENT_T])){
+                    match c.run_simulation(None, Some(vec![CLIENT_T])){
                         Ok(_)=>{
                             logger1.lock().unwrap().log_debug("[ON_SELECT_NEW_FILE] Simulation correctly ended");
                         },
