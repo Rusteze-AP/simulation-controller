@@ -197,113 +197,99 @@ export component RightMenu inherits Window{
     callback remove_edge();
     callback add_edge();
     callback change_pdr();
-    width: 400px;
-    height: 1000px;
-    preferred-height: 100%;
-    preferred-width: 100%;
+
+
     in-out property <string> label_id;
     in-out property <Drone> selected_drone;
     in-out property <int> edge_selected;
     in-out property <float> tmp_pdr: selected_drone.pdr;
 
-    GridLayout {
-        Row{
-            Rectangle {
-                width: 400px;
-                height: 50px;
-                preferred-height: 100%;
-                preferred-width: 100%;
 
-                background: #a0b1e4;
-                border-color: black;
-                border-width: 0.5px;
-                Text {
-                    y: 0px;
-                    text: "Drone control : " + selected_drone.id; 
-                    horizontal-alignment: center;
-                    vertical-alignment: center;
-                    color: black;
-                }
-                Text {
-                    y:25px;
-                    text: "Pdr : " + selected_drone.pdr; 
-                    horizontal-alignment: center;
-                    vertical-alignment: center;
-                    color: black;
-                }
+    Rectangle {
+        width: parent.width;
+        height: 2* parent.height/21;
+        x: 0px;
+        y: 0px;
+
+        background: #a0b1e4;
+        border-color: black;
+        border-width: 0.5px;
+        Text {
+            y: parent.height/4;
+            text: "Drone control : " + selected_drone.id; 
+            horizontal-alignment: center;
+            vertical-alignment: center;
+            color: black;
+        }
+        Text {
+            y: parent.height/2;
+            text: "Pdr : " + selected_drone.pdr; 
+            horizontal-alignment: center;
+            vertical-alignment: center;
+            color: black;
+        }
+    }
+
+    Button {
+        text: "Crash drone";
+        x: 0px;
+        y: 3*parent.height/21;
+        width: parent.width;
+        height: parent.height/21;
+
+        clicked => {
+            crash();
+        }
+    }
+
+    Rectangle {
+        width:parent.width;
+        height: parent.height/7;
+        preferred-height: 100%;
+        preferred-width: 100%;
+        Text {
+            text: "Set packet drop rate to : " + tmp_pdr;
+            width:parent.width;
+            height: 2*parent.height/3;
+            horizontal-alignment: center;
+        }
+        Slider { 
+            width: parent.width;
+            height: parent.height/3;
+            preferred-height: 100%;
+            preferred-width: 100%;
+            maximum: 1;
+            minimum: 0;
+            step: 0.01;
+            value: tmp_pdr;
+            
+            changed(value) => {
+                tmp_pdr = value;
             }
         }
 
-        Row{
-            Button {
-                text: "Crash drone";
-                width: 400px;
-                height: 50px;
-                preferred-height: 100%;
-                preferred-width: 100%;
-
-                clicked => {
-                    crash();
-                }
+        Button {
+            width: parent.width/4;
+            height: parent.height/3;
+            preferred-height: 100%;
+            preferred-width: 100%;
+            x: parent.width/2 - parent.width/8;
+            y: 2*parent.height/3;
+            text: "Confirmed";
+            clicked => {
+                change_pdr();
             }
         }
-
-
-
-        Row{
-            Rectangle {
-                width:400px;
-                height: 150px;
-                preferred-height: 100%;
-                preferred-width: 100%;
-                Text {
-                    text: "Set packet drop rate to : " + tmp_pdr;
-                    width:400px;
-                    height: 100px;
-                    horizontal-alignment: center;
-                }
-                Slider { 
-                    width: 400px;
-                    height: 50px;
-                    preferred-height: 100%;
-                    preferred-width: 100%;
-                    maximum: 1;
-                    minimum: 0;
-                    step: 0.01;
-                    value: tmp_pdr;
-                    
-                    changed(value) => {
-                        tmp_pdr = value;
-                    }
-                }
-
-                Button {
-                    width: 100px;
-                    height: 50px;
-                    preferred-height: 100%;
-                    preferred-width: 100%;
-                    x: 150px;
-                    y: 100px;
-                    text: "Confirmed";
-                    clicked => {
-                        change_pdr();
-                    }
-                }
-            }
-        }
-
- 
     }
 
     // TODO: sistemare posizionamento per connessioni (non in base all'id)
     for i in self.selected_drone.adjent: Button {
-        preferred-width: 200px;
-        preferred-height: 50px;
-        // preferred-height: 100%;
-        // preferred-width: 100%;
+        width: parent.width/2;
+        preferred-height: parent.height/21;
+
         text: "Remove connection with " + i;
         x: 0px;
-        y: 250px + i*50px;
+        y: 5*parent.height/21 + i*parent.height/21;
 
         clicked => {
             edge_selected = i;
@@ -316,13 +302,13 @@ export component RightMenu inherits Window{
     }
 
     for d in self.selected_drone.not_adjacent: Button{
-        preferred-width: 200px;
-        preferred-height: 50px;
+        width: parent.width/2;
+        preferred-height: parent.height/21;
         // preferred-height: 100%;
         // preferred-width: 100%;
         text: "Add connection with " + d;
-        x: 200px;
-        y: 250px + d*50px;
+        x: parent.width/2;
+        y: 5*parent.height/21 + d*parent.height/21;
         clicked => {
             edge_selected = d;
             add_edge();
@@ -333,8 +319,7 @@ export component RightMenu inherits Window{
 
 component BottomWindow inherits Window{
     callback select_new_file();
-    preferred-height: 50px;
-    preferred-width: 200px;
+
     GridLayout {
         Row{
             Button {
@@ -379,10 +364,10 @@ export component Window inherits Window {
     background: #000000;
 
     for edge[i] in edges: Edge{
-        x1: edges[i].id1<20 ? (parent.width/2.15 + (parent.height / 3) * cos(2 * 1rad * 3.14159 * edges[i].id1 /10) + (64px / 2) +32px)/1px : (edges[i].id1<30 ?  (parent.width/5 +32px)/1px : (parent.width/5 + 2*parent.height / 3 + 275px +32px)/1px) ;
-        y1: edges[i].id1<20 ?(parent.height/2.5 +(parent.height / 3) * sin(2 * 1rad* 3.14159 * edges[i].id1 / 10) + (64px / 3) +32px)/1px: ( edges[i].id1<30 ? (parent.height/3 +(edges[i].id1 - 20) *175px +32px)/1px : (parent.height/3 +(edges[i].id1 -30)*175px + 32px)/1px);
-        x2: edges[i].id2<20 ? (parent.width/2.15 + (parent.height / 3) * cos(2 * 1rad * 3.14159 * edges[i].id2 /10) + (64px / 2) +32px)/1px : (edges[i].id2<30 ?  (parent.width/5 +32px)/1px : (parent.width/5 + 2*parent.height / 3 + 275px +32px)/1px);
-        y2: edges[i].id2<20 ?(parent.height/2.5 +(parent.height / 3) * sin(2 * 1rad* 3.14159 * edges[i].id2 / 10) + (64px / 3) +32px)/1px: ( edges[i].id2<30 ? (parent.height/3 +(edges[i].id2 - 20) *175px +32px)/1px : (parent.height/3 +(edges[i].id2 -30)*175px + 32px)/1px);
+        x1: edges[i].id1<20 ? (parent.width/2.15 + (parent.height / 3) * cos(2 * 1rad * 3.14159 * edges[i].id1 /10) + (64px / 2) +32px)/1px : (edges[i].id1<30 ?  (parent.width/5 +32px)/1px : (parent.width/5 + 2*parent.height / 3 + parent.width/7 +32px)/1px) ;
+        y1: edges[i].id1<20 ?(parent.height/2.5 +(parent.height / 3) * sin(2 * 1rad* 3.14159 * edges[i].id1 / 10) + (64px / 3) +32px)/1px: ( edges[i].id1<30 ? (parent.height/3 +(edges[i].id1 - 20) *parent.height/6 +32px)/1px : (parent.height/3 +(edges[i].id1 -30)*parent.height/6 + 32px)/1px);
+        x2: edges[i].id2<20 ? (parent.width/2.15 + (parent.height / 3) * cos(2 * 1rad * 3.14159 * edges[i].id2 /10) + (64px / 2) +32px)/1px : (edges[i].id2<30 ?  (parent.width/5 +32px)/1px : (parent.width/5 + 2*parent.height / 3 + parent.width/7 +32px)/1px);
+        y2: edges[i].id2<20 ?(parent.height/2.5 +(parent.height / 3) * sin(2 * 1rad* 3.14159 * edges[i].id2 / 10) + (64px / 3) +32px)/1px: ( edges[i].id2<30 ? (parent.height/3 +(edges[i].id2 - 20) *parent.height/6 +32px)/1px : (parent.height/3 +(edges[i].id2 -30)*parent.height/6 + 32px)/1px);
 
         x: self.x1 < self.x2 ? self.x1*1px   : self.x2*1px ;
         y: self.y1 < self.y2 ? self.y1*1px : self.y2*1px;
@@ -447,6 +432,9 @@ export component Window inherits Window {
 
     // TODO: sistemare posizione, colore, ecc.
     LeftMenu {
+        width: parent.width/5;
+        height: parent.height;
+
         x: 0;
         y: parent.height/5;
         label_id: id_selected_client_server<30? "client" + id_selected_client_server : "server" + id_selected_client_server;
@@ -469,6 +457,9 @@ export component Window inherits Window {
 
     // TODO: sistemare posizione, colore, ecc.
     RightMenu {
+        width: parent.width/5;
+        height: parent.height;
+
         x: parent.width - self.width;
         y: parent.height/5;
         label_id: "drone" + id_selected_drone;
@@ -509,10 +500,10 @@ export component Window inherits Window {
 
 
     for message[i] in messages : Message {
-        current_x: messages[i].id1<20 ? (parent.width/2.15 + (parent.height / 3) * cos(2 * 1rad * 3.14159 * messages[i].id1 /10) + (64px / 2) +32px)/1px : (messages[i].id1<30 ?  (parent.width/5 +32px)/1px : (parent.width/5 + 2*parent.height / 3 + 275px +32px)/1px) ;
-        current_y: messages[i].id1<20 ?(parent.height/2.5 +(parent.height / 3) * sin(2 * 1rad* 3.14159 * messages[i].id1 / 10) + (64px / 3) +32px)/1px: ( messages[i].id1<30 ? (parent.height/3 +(messages[i].id1 - 20) *175px +32px)/1px : (parent.height/3 +(messages[i].id1 -30)*175px + 32px)/1px);
-        end_x: messages[i].id2<20 ? (parent.width/2.15 + (parent.height / 3) * cos(2 * 1rad * 3.14159 * messages[i].id2 /10) + (64px / 2) +32px)/1px : (messages[i].id2<30 ?  (parent.width/5 +32px)/1px : (parent.width/5 + 2*parent.height / 3 + 275px +32px)/1px);
-        end_y: messages[i].id2<20 ?(parent.height/2.5 +(parent.height / 3) * sin(2 * 1rad* 3.14159 * messages[i].id2 / 10) + (64px / 3) +32px)/1px: ( messages[i].id2<30 ? (parent.height/3 +(messages[i].id2 - 20) *175px +32px)/1px : (parent.height/3 +(messages[i].id2 -30)*175px + 32px)/1px);
+        current_x: messages[i].id1<20 ? (parent.width/2.15 + (parent.height / 3) * cos(2 * 1rad * 3.14159 * messages[i].id1 /10) + (64px / 2) +32px)/1px : (messages[i].id1<30 ?  (parent.width/5 +32px)/1px : (parent.width/5 + 2*parent.height / 3 + parent.width/7 +32px)/1px) ;
+        current_y: messages[i].id1<20 ?(parent.height/2.5 +(parent.height / 3) * sin(2 * 1rad* 3.14159 * messages[i].id1 / 10) + (64px / 3) +32px)/1px: ( messages[i].id1<30 ? (parent.height/3 +(messages[i].id1 - 20) *parent.height/6 +32px)/1px : (parent.height/3 +(messages[i].id1 -30)*parent.height/6 + 32px)/1px);
+        end_x: messages[i].id2<20 ? (parent.width/2.15 + (parent.height / 3) * cos(2 * 1rad * 3.14159 * messages[i].id2 /10) + (64px / 2) +32px)/1px : (messages[i].id2<30 ?  (parent.width/5 +32px)/1px : (parent.width/5 + 2*parent.height / 3 + parent.width/7 +32px)/1px);
+        end_y: messages[i].id2<20 ?(parent.height/2.5 +(parent.height / 3) * sin(2 * 1rad* 3.14159 * messages[i].id2 / 10) + (64px / 3) +32px)/1px: ( messages[i].id2<30 ? (parent.height/3 +(messages[i].id2 - 20) *parent.height/6 +32px)/1px : (parent.height/3 +(messages[i].id2 -30)*parent.height/6 + 32px)/1px);
 
         step_x: (self.end_x - self.current_x) / self.counter;
         step_y: (self.end_y - self.current_y) / self.counter;
