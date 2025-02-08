@@ -7,7 +7,7 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use wg_internal::{config::Client, controller::{DroneCommand, DroneEvent}};
 use wg_internal::network::NodeId;
-use wg_internal::packet::{Packet, PacketType};
+use wg_internal::packet::{Packet, PacketType, NackType};
 use network_initializer::channel::Channel;
 use rfd::FileDialog;
 use std::ffi::OsString;
@@ -398,6 +398,8 @@ fn main() -> Result<(), slint::PlatformError> {
 
     let mut downsample_ack = 0;
     let mut downsample_msg_frag = 0;
+    let mut downsample_nack = 0;
+    let mut downsample_dropped = 0;
     thread::spawn(move ||{
         loop{
             if let Some(sc_rec) = sc_receiver_.lock().unwrap().as_ref(){
@@ -407,24 +409,28 @@ fn main() -> Result<(), slint::PlatformError> {
                             logger_.lock().unwrap().log_debug(&format!("PacketDropped received {:?}", packet));
                             let logger1 = logger_.clone();
                             let id_to_type_pos1 = id_to_type_pos_.clone();
-                            match weak.upgrade_in_event_loop(move |window|{
-                                let messages : ModelRc<Message> = window.get_messages();
-                                let (ns1, index1) = get_node_type(packet.routing_header.hops[packet.routing_header.hop_index-1] as i32, &id_to_type_pos1);
-                                let (ns2, index2) = get_node_type(packet.routing_header.hops[packet.routing_header.hop_index] as i32, &id_to_type_pos1);
-                                
-                                if let Some(vec_model) = messages.as_any().downcast_ref::<VecModel<Message>>() {
-                                    vec_model.push(Message{id1: packet.routing_header.hops[packet.routing_header.hop_index-1] as i32 , id2: packet.routing_header.hops[packet.routing_header.hop_index] as i32, msg_type:5, node_type1: ns1, node_type2: ns2, index1: index1, index2: index2});
-                                }else{
-                                    window.set_messages(slint::ModelRc::new(slint::VecModel::from(vec![
-                                        Message { id1: packet.routing_header.hops[packet.routing_header.hop_index-1] as i32 , id2: packet.routing_header.hops[packet.routing_header.hop_index] as i32, msg_type:5, node_type1: ns1, node_type2: ns2, index1: index1, index2: index2},
-                                    ])));
-                                }    
-                            }){
-                                Ok(_) => {
-                                    logger_.lock().unwrap().log_debug("Message sent to window");
-                                },
-                                Err(e) => {
-                                    logger_.lock().unwrap().log_error(&format!("Error sending message to window: {}", e));
+                            downsample_dropped = downsample_dropped + 1;
+                            if downsample_dropped % 10000 == 0 {
+                                downsample_dropped = 0;
+                                match weak.upgrade_in_event_loop(move |window|{
+                                    let messages : ModelRc<Message> = window.get_messages();
+                                    let (ns1, index1) = get_node_type(packet.routing_header.hops[packet.routing_header.hop_index-1] as i32, &id_to_type_pos1);
+                                    let (ns2, index2) = get_node_type(packet.routing_header.hops[packet.routing_header.hop_index] as i32, &id_to_type_pos1);
+                                    
+                                    if let Some(vec_model) = messages.as_any().downcast_ref::<VecModel<Message>>() {
+                                        vec_model.push(Message{id1: packet.routing_header.hops[packet.routing_header.hop_index-1] as i32 , id2: packet.routing_header.hops[packet.routing_header.hop_index] as i32, msg_type:5, node_type1: ns1, node_type2: ns2, index1: index1, index2: index2});
+                                    }else{
+                                        window.set_messages(slint::ModelRc::new(slint::VecModel::from(vec![
+                                            Message { id1: packet.routing_header.hops[packet.routing_header.hop_index-1] as i32 , id2: packet.routing_header.hops[packet.routing_header.hop_index] as i32, msg_type:5, node_type1: ns1, node_type2: ns2, index1: index1, index2: index2},
+                                        ])));
+                                    }    
+                                }){
+                                    Ok(_) => {
+                                        logger_.lock().unwrap().log_debug("Message sent to window");
+                                    },
+                                    Err(e) => {
+                                        logger_.lock().unwrap().log_error(&format!("Error sending message to window: {}", e));
+                                    }
                                 }
                             }
                         }
@@ -438,46 +444,66 @@ fn main() -> Result<(), slint::PlatformError> {
                                         let message; 
                                         let (ns1, index1) = get_node_type(packet.routing_header.hops[packet.routing_header.hop_index-1] as i32, &id_to_type_pos1);
                                         let (ns2, index2) = get_node_type(packet.routing_header.hops[packet.routing_header.hop_index] as i32, &id_to_type_pos1);
-                                        
                                             match packet.pack_type{
                                                 PacketType::MsgFragment(_) => {
                                                     message = Message { id1: packet.routing_header.hops[packet.routing_header.hop_index-1] as i32 , id2: packet.routing_header.hops[packet.routing_header.hop_index] as i32, msg_type:0, node_type1: ns1, node_type2: ns2, index1: index1, index2: index2};
                                                     downsample_msg_frag = downsample_msg_frag + 1;
+                                                    if downsample_msg_frag%10000==0{
+                                                        downsample_msg_frag = 0;
+                                                        if let Some(vec_model) = messages.as_any().downcast_ref::<VecModel<Message>>() {
+                                                            vec_model.push(message);
+                                                        }else{
+                                                            window.set_messages(slint::ModelRc::new(slint::VecModel::from(vec![
+                                                                message,
+                                                            ])));
+                                                        }
+                                                    }
                                                 },
                                                 PacketType::Ack(_)=> {
                                                     message = Message { id1: packet.routing_header.hops[packet.routing_header.hop_index-1] as i32 , id2: packet.routing_header.hops[packet.routing_header.hop_index] as i32, msg_type:1,  node_type1: ns1, node_type2: ns2, index1: index1, index2: index2};
                                                     downsample_ack = downsample_ack + 1;
+                                                    if downsample_ack%10000==0{
+                                                        downsample_ack = 0;
+                                                        if let Some(vec_model) = messages.as_any().downcast_ref::<VecModel<Message>>() {
+                                                            vec_model.push(message);
+                                                        }else{
+                                                            window.set_messages(slint::ModelRc::new(slint::VecModel::from(vec![
+                                                                message,
+                                                            ])));
+                                                        }
+                                                    }
                                                 },
-                                                PacketType::Nack(_)=>{
-                                                    message = Message { id1: packet.routing_header.hops[packet.routing_header.hop_index-1] as i32 , id2: packet.routing_header.hops[packet.routing_header.hop_index] as i32, msg_type:2,  node_type1: ns1, node_type2: ns2, index1: index1, index2: index2};
+                                                PacketType::Nack(e)=>{
+                                                    match e.nack_type{
+                                                        NackType::Dropped=>{},
+                                                        _ =>{
+                                                            message = Message { id1: packet.routing_header.hops[packet.routing_header.hop_index-1] as i32 , id2: packet.routing_header.hops[packet.routing_header.hop_index] as i32, msg_type:2,  node_type1: ns1, node_type2: ns2, index1: index1, index2: index2};
+                                                            downsample_nack = downsample_nack + 1;
+                                                            if downsample_nack%10000==0{
+                                                                downsample_nack = 0;
+                                                                if let Some(vec_model) = messages.as_any().downcast_ref::<VecModel<Message>>() {
+                                                                    vec_model.push(message);
+                                                                }else{
+                                                                    window.set_messages(slint::ModelRc::new(slint::VecModel::from(vec![
+                                                                        message,
+                                                                    ])));
+                                                                }
+                                                            }
+                                                        }
+                                                    }
                                                 }, 
                                                 PacketType::FloodRequest(_)=>{
                                                     message = Message { id1: packet.routing_header.hops[packet.routing_header.hop_index-1] as i32 , id2: packet.routing_header.hops[packet.routing_header.hop_index] as i32, msg_type:3,  node_type1: ns1, node_type2: ns2, index1: index1, index2: index2};
+                                                    if let Some(vec_model) = messages.as_any().downcast_ref::<VecModel<Message>>() {
+                                                        vec_model.push(message);
+                                                    }else{
+                                                        window.set_messages(slint::ModelRc::new(slint::VecModel::from(vec![
+                                                            message,
+                                                        ])));
+                                                    }
                                                 }
                                                 PacketType::FloodResponse(_)=>{
                                                     message = Message { id1: packet.routing_header.hops[packet.routing_header.hop_index-1] as i32 , id2: packet.routing_header.hops[packet.routing_header.hop_index] as i32, msg_type:4,  node_type1: ns1, node_type2: ns2, index1: index1, index2: index2};
-                                                }
-                                            }
-                                            if message.msg_type==0 && downsample_msg_frag%10000==0{
-                                                downsample_msg_frag = 0;
-                                                if let Some(vec_model) = messages.as_any().downcast_ref::<VecModel<Message>>() {
-                                                    vec_model.push(message);
-                                                }else{
-                                                    window.set_messages(slint::ModelRc::new(slint::VecModel::from(vec![
-                                                        message,
-                                                    ])));
-                                                }
-                                            }else if message.msg_type==1 && downsample_ack%10000==0{
-                                                downsample_ack = 0;
-                                                if let Some(vec_model) = messages.as_any().downcast_ref::<VecModel<Message>>() {
-                                                    vec_model.push(message);
-                                                }else{
-                                                    window.set_messages(slint::ModelRc::new(slint::VecModel::from(vec![
-                                                        message,
-                                                    ])));
-                                                }
-                                            }else{
-                                                if message.msg_type!=0 && message.msg_type!=1{
                                                     if let Some(vec_model) = messages.as_any().downcast_ref::<VecModel<Message>>() {
                                                         vec_model.push(message);
                                                     }else{
