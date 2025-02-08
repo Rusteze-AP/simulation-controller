@@ -1,0 +1,12 @@
+{
+    "videos": [
+        {
+            "id": 0,
+            "title": "timer",
+            "description": "A simple timer",
+            "duration": 156,
+            "mime_type": "video/mp4",
+            "created_at": "0"
+        }
+    ]
+}

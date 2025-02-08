@@ -1,0 +1,20 @@
+{
+    "videos": [
+        {
+            "id": 0,
+            "title": "freaks",
+            "description": "freaks",
+            "duration": 15,
+            "mime_type": "video/mp4",
+            "created_at": "0"
+        },
+        {
+            "id": 0,
+            "title": "doggie",
+            "description": "freakdoggie",
+            "duration": 60,
+            "mime_type": "video/mp4",
+            "created_at": "0"
+        }
+    ]
+}
