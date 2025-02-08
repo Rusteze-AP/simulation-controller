@@ -469,7 +469,7 @@ export component Window inherits Window {
         start_y: 0;
         end_x: (self.x1 > self.x2 && self.y1 > self.y2) ||  (self.x2 > self.x1 && self.y2 > self.y1) ? self.width/1px : 0;
         end_y: self.height/1px;
-        // stroke : @linear-gradient(0deg, rgb(255*drones[edges[i].position_in_vector1].pdr,255*drones[edges[i].position_in_vector1].pdr,255*drones[edges[i].position_in_vector1].pdr), rgb(255*drones[edges[i].position_in_vector2].pdr,255*drones[edges[i].position_in_vector2].pdr,255*drones[edges[i].position_in_vector2].pdr)); //-> bisognerebbe sapere la posizione nel vettore, cosa non scontata haha
+        // stroke : @linear-gradient(0deg, edges[i].node_type1==0? rgb(255-255*drones[edges[i].index1].pdr,255-255*drones[edges[i].index1].pdr,255-255*drones[edges[i].index1].pdr) : rgb(255,255,255), edges[i].node_type2==0? rgb(255-255*drones[edges[i].index2].pdr,255-255*drones[edges[i].index2].pdr,255-255*drones[edges[i].index2].pdr) : rgb(255,255,255));
         stroke: #ffffff;
     }
 

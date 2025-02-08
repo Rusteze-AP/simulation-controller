@@ -1,0 +1,31 @@
+{
+  "songs": [
+    {
+      "id": 0,
+      "title": "Lay It Out",
+      "artist": "Cateholic",
+      "album": "pixabay",
+      "duration": 158,
+      "image_url": "https://cdn.pixabay.com/audio/2023/11/23/01-28-51-688_200x200.jpg",
+      "is_local": true
+    },
+    {
+      "id": 0,
+      "title": "Choose Motivation",
+      "artist": "DayNigthMorning",
+      "album": "pixabay",
+      "duration": 148,
+      "image_url": "https://cdn.pixabay.com/audio/2024/12/28/12-01-17-627_200x200.jpg",
+      "is_local": true
+    },
+    {
+      "id": 0,
+      "title": "Cinematic Background",
+      "artist": "makesoundmusic",
+      "album": "pixabay",
+      "duration": 146,
+      "image_url": "https://cdn.pixabay.com/audio/2023/05/16/06-59-03-482_200x200.png",
+      "is_local": true
+    }
+  ]
+}

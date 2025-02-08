@@ -2,29 +2,20 @@
   "songs": [
     {
       "id": 0,
-      "title": "Blood and Thunder",
-      "artist": "Mastodon",
-      "album": "Leviathan",
-      "duration": 118,
-      "image_url": "https://upload.wikimedia.org/wikipedia/en/d/d8/Mastodonleviathan.jpg",
+      "title": "Tokyo Cafe",
+      "artist": "TVARI",
+      "album": "pixabay",
+      "duration": 153,
+      "image_url": "https://cdn.pixabay.com/audio/2023/07/22/02-53-18-138_200x200.jpg",
       "is_local": true
     },
     {
       "id": 0,
-      "title": "Lonely Day",
-      "artist": "System of a Down",
-      "album": "Hypnotize",
-      "duration": 65,
-      "image_url": "https://upload.wikimedia.org/wikipedia/en/9/9a/System_Of_A_Down-Hypnotize.jpg",
-      "is_local": true
-    },
-    {
-      "id": 0,
-      "title": "Billie Jean",
-      "artist": "Michael Jackson",
-      "album": "Thriller",
-      "duration": 140,
-      "image_url": "https://upload.wikimedia.org/wikipedia/en/5/55/Michael_Jackson_-_Thriller.png",
+      "title": "Motivational Background",
+      "artist": "DayNigthMorning",
+      "album": "pixabay",
+      "duration": 90,
+      "image_url": "https://cdn.pixabay.com/audio/2024/12/07/13-01-36-664_200x200.png",
       "is_local": true
     }
   ]

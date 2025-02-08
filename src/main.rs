@@ -369,7 +369,7 @@ fn main() -> Result<(), slint::PlatformError> {
             window.set_servers(slint::ModelRc::new(slint::VecModel::from(servers)));
         }
     }else{
-        (*logger).lock().unwrap().log_error("Error in loading the configuration file");
+        (*logger).lock().unwrap().log_error(&format!("Error in loading the configuration file"));
     }
 
     // thread for running the simulation
