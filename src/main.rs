@@ -1,11 +1,11 @@
 slint::include_modules!();
 use crossbeam::channel::{ Receiver, Sender, TryRecvError};
-use network_initializer::{errors::ConfigError, NetworkInitializer, parsed_nodes::{ParsedDrone, ParsedClient, ParsedServer}, DroneType};
+use network_initializer::{errors::ConfigError, NetworkInitializer, parsed_nodes::{ParsedDrone, ParsedClient, ParsedServer}};
 use slint::{Model, ModelRc, VecModel};
-use std::collections::{HashMap, VecDeque, HashSet};
+use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::thread;
-use wg_internal::{config::Client, controller::{DroneCommand, DroneEvent}};
+use wg_internal::controller::{DroneCommand, DroneEvent};
 use wg_internal::network::NodeId;
 use wg_internal::packet::{Packet, PacketType, NackType};
 use network_initializer::channel::Channel;
@@ -344,7 +344,7 @@ fn main() -> Result<(), slint::PlatformError> {
     let mut sc_receiver: Arc<Mutex<Option<Receiver<DroneEvent>>>> = Arc::new(Mutex::new(None));
     let mut sc_senders: Arc<Mutex<Option<HashMap<NodeId, Sender<DroneCommand>>>>> = Arc::new(Mutex::new(None));
     let mut channels: Arc<Mutex<Option<HashMap<NodeId, Channel<Packet>>>>> = Arc::new(Mutex::new(None));
-    let mut id_to_type_pos: Arc<Mutex<HashMap<i32, (NodeType, i32)>>>= Arc::new(Mutex::new(HashMap::new())); // (NodeType, position_in_vector)
+    let id_to_type_pos: Arc<Mutex<HashMap<i32, (NodeType, i32)>>>= Arc::new(Mutex::new(HashMap::new())); // (NodeType, position_in_vector)
 
 
     if let Ok(ref mut c)= *network_initializer.lock().unwrap() {
@@ -396,10 +396,10 @@ fn main() -> Result<(), slint::PlatformError> {
     let weak = main_window.as_weak();
     let id_to_type_pos_ = id_to_type_pos.clone();
 
-    let mut downsample_ack = Arc::new(Mutex::new(0));
-    let mut downsample_msg_frag = Arc::new(Mutex::new(0));
-    let mut downsample_nack = Arc::new(Mutex::new(0));
-    let mut downsample_dropped = Arc::new(Mutex::new(0));
+    let downsample_ack = Arc::new(Mutex::new(0));
+    let downsample_msg_frag = Arc::new(Mutex::new(0));
+    let downsample_nack = Arc::new(Mutex::new(0));
+    let downsample_dropped = Arc::new(Mutex::new(0));
     thread::spawn(move ||{
         loop{
             if let Some(sc_rec) = sc_receiver_.lock().unwrap().as_ref(){
@@ -407,7 +407,7 @@ fn main() -> Result<(), slint::PlatformError> {
                         // PacketDropped
                         Ok(DroneEvent::PacketDropped(packet)) => {
                             logger_.lock().unwrap().log_debug(&format!("PacketDropped received {:?}", packet));
-                            let logger1 = logger_.clone();
+                            // let logger1 = logger_.clone();
                             let id_to_type_pos1 = id_to_type_pos_.clone();
                             let downsample_dropped1 = downsample_dropped.clone();
                             *downsample_dropped1.lock().unwrap() += 1;
@@ -547,7 +547,7 @@ fn main() -> Result<(), slint::PlatformError> {
                         // ControllerShortcut
                         Ok(DroneEvent::ControllerShortcut(packet)) => {
                             logger_.lock().unwrap().log_debug(&format!("ControllerShortcut received {:?}", packet));
-                            let logger1 = logger_.clone();
+                            // let logger1 = logger_.clone();
                             let id_to_type_pos1 = id_to_type_pos_.clone();
                             match weak.upgrade_in_event_loop(move |window|
                                 {let messages : ModelRc<Message> = window.get_messages();
@@ -1217,11 +1217,11 @@ fn main() -> Result<(), slint::PlatformError> {
     // NON VA NULLA
     let logger_ = logger.clone();
     let weak = main_window.as_weak();
-    let mut senders = sc_senders.clone();
-    let mut sc_receiver_=sc_receiver.clone();
-    let mut channels_ = channels.clone();
-    let mut id_to_type_pos_ = id_to_type_pos.clone();
-    let mut network_initializer_: Arc<Mutex<Result<NetworkInitializer, ConfigError>>> = network_initializer.clone();
+    let senders = sc_senders.clone();
+    let sc_receiver_=sc_receiver.clone();
+    let channels_ = channels.clone();
+    let id_to_type_pos_ = id_to_type_pos.clone();
+    let network_initializer_: Arc<Mutex<Result<NetworkInitializer, ConfigError>>> = network_initializer.clone();
     main_window.on_select_new_file(move || {
         logger_.lock().unwrap().log_info("[ON_SELECT_NEW_FILE]");
         let mut new_path: String = String::from("");
