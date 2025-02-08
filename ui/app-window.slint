@@ -20,12 +20,20 @@ struct ClientServer {
 struct Edge{
     id1: int,
     id2: int,
+    node_type1: int, // 0 = drone, 1 = client, 2 = server
+    node_type2: int, // 0 = drone, 1 = client, 2 = server
+    index1: int,
+    index2: int,
 }
 
 struct Message{
     id1: int,
     id2: int,
     msg_type: int, // 0 = packetSent-msgFragment, 1 packetSent-ack, 2 packetSent-Nack, 3 = packetSent-FloodRequest,  4=packetSent-FloodResponse, 5=packetDropped, 6=controllerShortcut
+    node_type1: int, // 0 = drone, 1 = client, 2 = server
+    node_type2: int, // 0 = drone, 1 = client, 2 = server
+    index1: int,
+    index2: int,
 }
 
 component Drone inherits Rectangle{
@@ -448,10 +456,10 @@ export component Window inherits Window {
     background: #000000;
 
     for edge[i] in edges: Edge{
-        x1: edges[i].id1<20 ? (parent.width/2.15 + (parent.height / 4) * cos(2 * 1rad * 3.14159 * edges[i].id1 /10) + (node_size*1px / 2) + 1px*node_size/2)/1px : (edges[i].id1<30 ?  (parent.width/4 +1px*node_size/2)/1px : (parent.width - parent.width/3 +1px*node_size/2)/1px) ;
-        y1: edges[i].id1<20 ?(parent.height/2.5 +(parent.height / 4) * sin(2 * 1rad* 3.14159 * edges[i].id1 / 10) + (node_size*1px / 3) +1px*node_size/2)/1px: ( edges[i].id1<30 ? (parent.height/3 +(edges[i].id1 - 20) *parent.height/6 +1px*node_size/2)/1px : (parent.height/3 +(edges[i].id1 -30)*parent.height/6 + 1px*node_size/2)/1px);
-        x2: edges[i].id2<20 ? (parent.width/2.15 + (parent.height / 4) * cos(2 * 1rad * 3.14159 * edges[i].id2 /10) + (node_size*1px / 2) +1px*node_size/2)/1px : (edges[i].id2<30 ?  (parent.width/4 +1px*node_size/2)/1px : (parent.width - parent.width/3 +1px*node_size/2)/1px);
-        y2: edges[i].id2<20 ?(parent.height/2.5 +(parent.height / 4) * sin(2 * 1rad* 3.14159 * edges[i].id2 / 10) + (node_size*1px / 3) +1px*node_size/2)/1px: ( edges[i].id2<30 ? (parent.height/3 +(edges[i].id2 - 20) *parent.height/6 +1px*node_size/2)/1px : (parent.height/3 +(edges[i].id2 -30)*parent.height/6 + 1px*node_size/2)/1px);
+        x1: edges[i].node_type1==0 ? (parent.width/2.15 + (parent.height / 4) * cos(2 * 1rad * 3.14159 * edges[i].id1 /10) + (node_size*1px / 2) + 1px*node_size/2)/1px : (edges[i].node_type1==1?  (parent.width/4 +1px*node_size/2)/1px : (parent.width - parent.width/3 +1px*node_size/2)/1px) ;
+        y1: edges[i].node_type1==0 ?(parent.height/2.5 +(parent.height / 4) * sin(2 * 1rad* 3.14159 * edges[i].id1 / 10) + (node_size*1px / 3) +1px*node_size/2)/1px: ( edges[i].node_type1==1 ? (parent.height/3 +(edges[i].index1) *parent.height/6 +1px*node_size/2)/1px : (parent.height/3 +(edges[i].index1)*parent.height/6 + 1px*node_size/2)/1px);
+        x2: edges[i].node_type2==0 ? (parent.width/2.15 + (parent.height / 4) * cos(2 * 1rad * 3.14159 * edges[i].id2 /10) + (node_size*1px / 2) +1px*node_size/2)/1px : (edges[i].node_type2==1 ?  (parent.width/4 +1px*node_size/2)/1px : (parent.width - parent.width/3 +1px*node_size/2)/1px);
+        y2: edges[i].node_type2==0 ?(parent.height/2.5 +(parent.height / 4) * sin(2 * 1rad* 3.14159 * edges[i].id2 / 10) + (node_size*1px / 3) +1px*node_size/2)/1px: ( edges[i].node_type2==1 ? (parent.height/3 +(edges[i].index2) *parent.height/6 +1px*node_size/2)/1px : (parent.height/3 +(edges[i].index2)*parent.height/6 + 1px*node_size/2)/1px);
 
         x: self.x1 < self.x2 ? self.x1*1px   : self.x2*1px ;
         y: self.y1 < self.y2 ? self.y1*1px : self.y2*1px;
@@ -461,7 +469,7 @@ export component Window inherits Window {
         start_y: 0;
         end_x: (self.x1 > self.x2 && self.y1 > self.y2) ||  (self.x2 > self.x1 && self.y2 > self.y1) ? self.width/1px : 0;
         end_y: self.height/1px;
-        // stroke : @linear-gradient(0deg, rgb(0,0,0), rgb(255,255,255)); -> bisognerebbe sapere la posizione nel vettore, cosa non scontata haha
+        // stroke : @linear-gradient(0deg, rgb(255*drones[edges[i].position_in_vector1].pdr,255*drones[edges[i].position_in_vector1].pdr,255*drones[edges[i].position_in_vector1].pdr), rgb(255*drones[edges[i].position_in_vector2].pdr,255*drones[edges[i].position_in_vector2].pdr,255*drones[edges[i].position_in_vector2].pdr)); //-> bisognerebbe sapere la posizione nel vettore, cosa non scontata haha
         stroke: #ffffff;
     }
 
@@ -587,10 +595,10 @@ export component Window inherits Window {
 
 
     for message[i] in messages : Message {
-        current_x: messages[i].id1<20 ? (parent.width/2.15 + (parent.height / 4) * cos(2 * 1rad * 3.14159 * messages[i].id1 /10) + (node_size*1px / 2) +1px*node_size/2)/1px : (messages[i].id1<30 ?  (parent.width/4 +1px*node_size/2)/1px : (parent.width - parent.width/3 +1px*node_size/2)/1px) ;
-        current_y: messages[i].id1<20 ?(parent.height/2.5 +(parent.height / 4) * sin(2 * 1rad* 3.14159 * messages[i].id1 / 10) + (node_size*1px / 3) +1px*node_size/2)/1px: ( messages[i].id1<30 ? (parent.height/3 +(messages[i].id1 - 20) *parent.height/6 +1px*node_size/2)/1px : (parent.height/3 +(messages[i].id1 -30)*parent.height/6 + 1px*node_size/2)/1px);
-        end_x: messages[i].id2<20 ? (parent.width/2.15 + (parent.height / 4) * cos(2 * 1rad * 3.14159 * messages[i].id2 /10) + (node_size*1px / 2) +1px*node_size/2)/1px : (messages[i].id2<30 ?  (parent.width/4 +1px*node_size/2)/1px : (parent.width - parent.width/3 +1px*node_size/2)/1px);
-        end_y: messages[i].id2<20 ?(parent.height/2.5 +(parent.height / 4) * sin(2 * 1rad* 3.14159 * messages[i].id2 / 10) + (node_size*1px / 3) +1px*node_size/2)/1px: ( messages[i].id2<30 ? (parent.height/3 +(messages[i].id2 - 20) *parent.height/6 +1px*node_size/2)/1px : (parent.height/3 +(messages[i].id2 -30)*parent.height/6 + 1px*node_size/2)/1px);
+        current_x: messages[i].node_type1==0 ? (parent.width/2.15 + (parent.height / 4) * cos(2 * 1rad * 3.14159 * messages[i].id1 /10) + (node_size*1px / 2) +1px*node_size/2)/1px : (messages[i].node_type1==1 ?  (parent.width/4 +1px*node_size/2)/1px : (parent.width - parent.width/3 +1px*node_size/2)/1px) ;
+        current_y: messages[i].node_type1==0?(parent.height/2.5 +(parent.height / 4) * sin(2 * 1rad* 3.14159 * messages[i].id1 / 10) + (node_size*1px / 3) +1px*node_size/2)/1px: ( messages[i].node_type1==1 ? (parent.height/3 +(messages[i].index1) *parent.height/6 +1px*node_size/2)/1px : (parent.height/3 +(messages[i].index1)*parent.height/6 + 1px*node_size/2)/1px);
+        end_x: messages[i].node_type2==0 ? (parent.width/2.15 + (parent.height / 4) * cos(2 * 1rad * 3.14159 * messages[i].id2 /10) + (node_size*1px / 2) +1px*node_size/2)/1px : (messages[i].node_type2==1 ?  (parent.width/4 +1px*node_size/2)/1px : (parent.width - parent.width/3 +1px*node_size/2)/1px);
+        end_y: messages[i].node_type2==0 ?(parent.height/2.5 +(parent.height / 4) * sin(2 * 1rad* 3.14159 * messages[i].id2 / 10) + (node_size*1px / 3) +1px*node_size/2)/1px: ( messages[i].node_type2==1 ? (parent.height/3 +(messages[i].index2) *parent.height/6 +1px*node_size/2)/1px : (parent.height/3 +(messages[i].index2)*parent.height/6 + 1px*node_size/2)/1px);
 
         step_x: (self.end_x - self.current_x) / self.counter;
         step_y: (self.end_y - self.current_y) / self.counter;
