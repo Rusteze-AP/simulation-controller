@@ -17,7 +17,7 @@ use logger::{Logger, LogLevel};
 
 const PATH: &str = "star.toml";    
 const CLIENT_T : ClientType = ClientType::Video;
-const DRONE : DroneType = DroneType::RustezeDrone;
+const DRONE : DroneType = DroneType::NullPointerDrone;
 
 fn check_edges(edges: &Vec<Edge>, id1: i32, id2: i32) -> bool {
     for edge in edges {
@@ -156,6 +156,11 @@ fn populate_all(parsed_drones: &Vec<ParsedDrone>, parsed_servers:&Vec<ParsedServ
         i = i+1;
     }
 
+    println!("Drones: {:?}", parsed_drones);
+    println!("Client: {:?}", parsed_clients);
+    println!("Servers: {:?}", parsed_servers);
+
+
     return (drones, clients, servers);
 }
 
@@ -187,13 +192,16 @@ fn send_drone_command(senders: &Arc<Mutex<Option<HashMap<u8, Sender<DroneCommand
 
 fn get_node_type(id: i32, id_to_type: &Arc<Mutex<HashMap<i32, (NodeType, i32)>>>) -> (i32, i32) {
     let id_to_type_ = id_to_type.lock().unwrap();
-    match id_to_type_.get(&id).unwrap(){
-        (NodeType::Drone, index) => return (0, *index),
-        (NodeType::Client, index) => return (1, *index),
-        (NodeType::Server, index) => return (2, *index),
+    match id_to_type_.get(&id){
+        Some((NodeType::Drone, index)) => return (0, *index),
+        Some((NodeType::Client, index)) => return (1, *index),
+        Some((NodeType::Server, index)) => return (2, *index),
+        None => return (-1, -1),
     }
 }
-
+// println!("Drones: {:?}", parsed_drones);
+// println!("Client: {:?}", parsed_clients);
+// println!("Servers: {:?}", parsed_servers);
 // // FOR PARTITION CONTROL WHEN CRASHING NODES
 // fn bfs(graph: &HashMap<i32, Vec<i32>>, drones: &vec![Drone] , clients id_start: i32) {
 //     // create the graph representation
@@ -251,6 +259,7 @@ fn main() -> Result<(), slint::PlatformError> {
 
         let mut edges: Vec<Edge> = vec![];
         let (drones, clients, servers) = populate_all(&nodes.0, &nodes.2, &nodes.1, &mut edges, &id_to_type_pos);
+        println!("id_to_type_pos {:?}", id_to_type_pos.lock().unwrap());
 
         let weak = main_window.as_weak();
         if let Some(window) = weak.upgrade() {
@@ -269,7 +278,7 @@ fn main() -> Result<(), slint::PlatformError> {
     thread::spawn(move || {
         logger_.lock().unwrap().log_debug("Simulation started");
         if let Ok(ref mut c) = *network_initializer_run_simulation.lock().unwrap() {
-            match c.run_simulation(Some(vec![DRONE]), Some(vec![CLIENT_T])) {
+            match c.run_simulation(None, Some(vec![CLIENT_T])) {
                 Ok(_) => {
                     logger_.lock().unwrap().log_debug("Simulation ended correctly");
                 }
@@ -1250,7 +1259,7 @@ fn main() -> Result<(), slint::PlatformError> {
                 // let drones = populate_drones(&nodes.0, &mut edges, &id_to_type_);
                 // let servers = populate_servers(&nodes.2, &mut edges, &nodes.0, &id_to_type_);
                 let (drones, clients, servers) = populate_all(nodes.0, nodes.2, nodes.1, &mut edges, &id_to_type_pos_);
-                // println!("id_to_type {:?}", *id_to_type_.lock().unwrap());
+                println!("id_to_type {:?}", *id_to_type_pos_.lock().unwrap());
 
                 if let Some(window) = weak.upgrade() {
                     window.set_edges(slint::ModelRc::new(slint::VecModel::from(edges)));
@@ -1267,7 +1276,7 @@ fn main() -> Result<(), slint::PlatformError> {
             let logger1= logger_.clone();
             thread::spawn(move || {
                 if let Ok(ref mut c)= *network_initializer_run_simulation.lock().unwrap() {
-                    match c.run_simulation(Some(vec![DRONE]), Some(vec![CLIENT_T])){
+                    match c.run_simulation(None, Some(vec![CLIENT_T])){
                         Ok(_)=>{
                             logger1.lock().unwrap().log_debug("[ON_SELECT_NEW_FILE] Simulation correctly ended");
                         },
