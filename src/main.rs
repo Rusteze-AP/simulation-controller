@@ -333,7 +333,7 @@ enum NodeType{
 
 fn main() -> Result<(), slint::PlatformError> {
     let logger: Arc<Mutex<Logger>> = Arc::new(Mutex::new(Logger::new(0, true, "SimulationController".to_string())));
-    (*logger).lock().unwrap().add_displayable_flag(LogLevel::All);
+    (*logger).lock().unwrap().add_displayable_flag(LogLevel::None);
 
     let main_window = Window::new()?;
     let window = main_window.window();
@@ -396,10 +396,10 @@ fn main() -> Result<(), slint::PlatformError> {
     let weak = main_window.as_weak();
     let id_to_type_pos_ = id_to_type_pos.clone();
 
-    let mut downsample_ack = 0;
-    let mut downsample_msg_frag = 0;
-    let mut downsample_nack = 0;
-    let mut downsample_dropped = 0;
+    let mut downsample_ack = Arc::new(Mutex::new(0));
+    let mut downsample_msg_frag = Arc::new(Mutex::new(0));
+    let mut downsample_nack = Arc::new(Mutex::new(0));
+    let mut downsample_dropped = Arc::new(Mutex::new(0));
     thread::spawn(move ||{
         loop{
             if let Some(sc_rec) = sc_receiver_.lock().unwrap().as_ref(){
@@ -409,9 +409,10 @@ fn main() -> Result<(), slint::PlatformError> {
                             logger_.lock().unwrap().log_debug(&format!("PacketDropped received {:?}", packet));
                             let logger1 = logger_.clone();
                             let id_to_type_pos1 = id_to_type_pos_.clone();
-                            downsample_dropped = downsample_dropped + 1;
-                            if downsample_dropped % 10000 == 0 {
-                                downsample_dropped = 0;
+                            let downsample_dropped1 = downsample_dropped.clone();
+                            *downsample_dropped1.lock().unwrap() += 1;
+                            if *downsample_dropped1.lock().unwrap() % 10000 == 0 {
+                                *downsample_dropped1.lock().unwrap() = 0;
                                 match weak.upgrade_in_event_loop(move |window|{
                                     let messages : ModelRc<Message> = window.get_messages();
                                     let (ns1, index1) = get_node_type(packet.routing_header.hops[packet.routing_header.hop_index-1] as i32, &id_to_type_pos1);
@@ -438,6 +439,9 @@ fn main() -> Result<(), slint::PlatformError> {
                         Ok(DroneEvent::PacketSent(packet)) => {
                             logger_.lock().unwrap().log_debug(&format!("PacketSent received {:?}", packet));
                             let id_to_type_pos1 = id_to_type_pos_.clone();
+                            let downsample_msg_frag1 = downsample_msg_frag.clone();
+                            let downsample_ack1 = downsample_ack.clone();
+                            let downsample_nack1 = downsample_nack.clone();
                             match weak.upgrade_in_event_loop(move |window|
                                 {let messages : ModelRc<Message> = window.get_messages();
                                     if packet.routing_header.hops.len() > 1{
@@ -447,9 +451,9 @@ fn main() -> Result<(), slint::PlatformError> {
                                             match packet.pack_type{
                                                 PacketType::MsgFragment(_) => {
                                                     message = Message { id1: packet.routing_header.hops[packet.routing_header.hop_index-1] as i32 , id2: packet.routing_header.hops[packet.routing_header.hop_index] as i32, msg_type:0, node_type1: ns1, node_type2: ns2, index1: index1, index2: index2};
-                                                    downsample_msg_frag = downsample_msg_frag + 1;
-                                                    if downsample_msg_frag%10000==0{
-                                                        downsample_msg_frag = 0;
+                                                    *downsample_msg_frag1.lock().unwrap() +=  1;
+                                                    if *downsample_msg_frag1.lock().unwrap() %1000==0{
+                                                        *downsample_msg_frag1.lock().unwrap() = 0;
                                                         if let Some(vec_model) = messages.as_any().downcast_ref::<VecModel<Message>>() {
                                                             vec_model.push(message);
                                                         }else{
@@ -461,9 +465,9 @@ fn main() -> Result<(), slint::PlatformError> {
                                                 },
                                                 PacketType::Ack(_)=> {
                                                     message = Message { id1: packet.routing_header.hops[packet.routing_header.hop_index-1] as i32 , id2: packet.routing_header.hops[packet.routing_header.hop_index] as i32, msg_type:1,  node_type1: ns1, node_type2: ns2, index1: index1, index2: index2};
-                                                    downsample_ack = downsample_ack + 1;
-                                                    if downsample_ack%10000==0{
-                                                        downsample_ack = 0;
+                                                    *downsample_ack1.lock().unwrap() += 1;
+                                                    if *downsample_ack1.lock().unwrap()%1000==0{
+                                                        *downsample_ack1.lock().unwrap() = 0;
                                                         if let Some(vec_model) = messages.as_any().downcast_ref::<VecModel<Message>>() {
                                                             vec_model.push(message);
                                                         }else{
@@ -478,9 +482,9 @@ fn main() -> Result<(), slint::PlatformError> {
                                                         NackType::Dropped=>{},
                                                         _ =>{
                                                             message = Message { id1: packet.routing_header.hops[packet.routing_header.hop_index-1] as i32 , id2: packet.routing_header.hops[packet.routing_header.hop_index] as i32, msg_type:2,  node_type1: ns1, node_type2: ns2, index1: index1, index2: index2};
-                                                            downsample_nack = downsample_nack + 1;
-                                                            if downsample_nack%10000==0{
-                                                                downsample_nack = 0;
+                                                            *downsample_nack1.lock().unwrap() += 1;
+                                                            if *downsample_nack1.lock().unwrap()%1000==0{
+                                                                *downsample_nack1.lock().unwrap() = 0;
                                                                 if let Some(vec_model) = messages.as_any().downcast_ref::<VecModel<Message>>() {
                                                                     vec_model.push(message);
                                                                 }else{
