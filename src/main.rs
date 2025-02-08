@@ -333,7 +333,7 @@ enum NodeType{
 
 fn main() -> Result<(), slint::PlatformError> {
     let logger: Arc<Mutex<Logger>> = Arc::new(Mutex::new(Logger::new(0, true, "SimulationController".to_string())));
-    (*logger).lock().unwrap().add_displayable_flag(LogLevel::None);
+    (*logger).lock().unwrap().add_displayable_flag(LogLevel::All);
 
     let main_window = Window::new()?;
     let window = main_window.window();
@@ -444,12 +444,12 @@ fn main() -> Result<(), slint::PlatformError> {
                             let downsample_nack1 = downsample_nack.clone();
                             match weak.upgrade_in_event_loop(move |window|
                                 {let messages : ModelRc<Message> = window.get_messages();
-                                    if packet.routing_header.hops.len() > 1{
                                         let message; 
-                                        let (ns1, index1) = get_node_type(packet.routing_header.hops[packet.routing_header.hop_index-1] as i32, &id_to_type_pos1);
-                                        let (ns2, index2) = get_node_type(packet.routing_header.hops[packet.routing_header.hop_index] as i32, &id_to_type_pos1);
+
                                             match packet.pack_type{
                                                 PacketType::MsgFragment(_) => {
+                                                    let (ns1, index1) = get_node_type(packet.routing_header.hops[packet.routing_header.hop_index-1] as i32, &id_to_type_pos1);
+                                                    let (ns2, index2) = get_node_type(packet.routing_header.hops[packet.routing_header.hop_index] as i32, &id_to_type_pos1);
                                                     message = Message { id1: packet.routing_header.hops[packet.routing_header.hop_index-1] as i32 , id2: packet.routing_header.hops[packet.routing_header.hop_index] as i32, msg_type:0, node_type1: ns1, node_type2: ns2, index1: index1, index2: index2};
                                                     *downsample_msg_frag1.lock().unwrap() +=  1;
                                                     if *downsample_msg_frag1.lock().unwrap() %1000==0{
@@ -464,6 +464,8 @@ fn main() -> Result<(), slint::PlatformError> {
                                                     }
                                                 },
                                                 PacketType::Ack(_)=> {
+                                                    let (ns1, index1) = get_node_type(packet.routing_header.hops[packet.routing_header.hop_index-1] as i32, &id_to_type_pos1);
+                                                    let (ns2, index2) = get_node_type(packet.routing_header.hops[packet.routing_header.hop_index] as i32, &id_to_type_pos1);
                                                     message = Message { id1: packet.routing_header.hops[packet.routing_header.hop_index-1] as i32 , id2: packet.routing_header.hops[packet.routing_header.hop_index] as i32, msg_type:1,  node_type1: ns1, node_type2: ns2, index1: index1, index2: index2};
                                                     *downsample_ack1.lock().unwrap() += 1;
                                                     if *downsample_ack1.lock().unwrap()%1000==0{
@@ -481,6 +483,8 @@ fn main() -> Result<(), slint::PlatformError> {
                                                     match e.nack_type{
                                                         NackType::Dropped=>{},
                                                         _ =>{
+                                                            let (ns1, index1) = get_node_type(packet.routing_header.hops[packet.routing_header.hop_index-1] as i32, &id_to_type_pos1);
+                                                            let (ns2, index2) = get_node_type(packet.routing_header.hops[packet.routing_header.hop_index] as i32, &id_to_type_pos1);
                                                             message = Message { id1: packet.routing_header.hops[packet.routing_header.hop_index-1] as i32 , id2: packet.routing_header.hops[packet.routing_header.hop_index] as i32, msg_type:2,  node_type1: ns1, node_type2: ns2, index1: index1, index2: index2};
                                                             *downsample_nack1.lock().unwrap() += 1;
                                                             if *downsample_nack1.lock().unwrap()%1000==0{
@@ -496,17 +500,29 @@ fn main() -> Result<(), slint::PlatformError> {
                                                         }
                                                     }
                                                 }, 
-                                                PacketType::FloodRequest(_)=>{
-                                                    message = Message { id1: packet.routing_header.hops[packet.routing_header.hop_index-1] as i32 , id2: packet.routing_header.hops[packet.routing_header.hop_index] as i32, msg_type:3,  node_type1: ns1, node_type2: ns2, index1: index1, index2: index2};
-                                                    if let Some(vec_model) = messages.as_any().downcast_ref::<VecModel<Message>>() {
-                                                        vec_model.push(message);
-                                                    }else{
-                                                        window.set_messages(slint::ModelRc::new(slint::VecModel::from(vec![
-                                                            message,
-                                                        ])));
+                                                PacketType::FloodRequest(flood)=>{
+                                                    if flood.path_trace.len()>=2{
+                                                        let id_1 = flood.path_trace.get(flood.path_trace.len()-2).unwrap().0;
+                                                        let id_2 = flood.path_trace.get(flood.path_trace.len()-1).unwrap().0;
+                                                        let (ns1, index1) = get_node_type(id_1 as i32, &id_to_type_pos1);
+                                                        let (ns2, index2) = get_node_type(id_2  as i32, &id_to_type_pos1);
+                                                        // println!("message: {} {} : flood {:?}", id_1, id_2, flood);
+                                                        message = Message { id1: id_1 as i32, id2: id_2 as i32, msg_type:3,  node_type1: ns1, node_type2: ns2, index1: index1, index2: index2};
+                                                        if let Some(vec_model) = messages.as_any().downcast_ref::<VecModel<Message>>() {
+                                                            // println!("message_pushed {:?}", message);
+                                                            vec_model.push(message);
+                                                            
+                                                        }else{
+                                                            // println!("message_pushed {:?}", message);
+                                                            window.set_messages(slint::ModelRc::new(slint::VecModel::from(vec![
+                                                                message,
+                                                            ])));
+                                                        }
                                                     }
                                                 }
                                                 PacketType::FloodResponse(_)=>{
+                                                    let (ns1, index1) = get_node_type(packet.routing_header.hops[packet.routing_header.hop_index-1] as i32, &id_to_type_pos1);
+                                                    let (ns2, index2) = get_node_type(packet.routing_header.hops[packet.routing_header.hop_index] as i32, &id_to_type_pos1);
                                                     message = Message { id1: packet.routing_header.hops[packet.routing_header.hop_index-1] as i32 , id2: packet.routing_header.hops[packet.routing_header.hop_index] as i32, msg_type:4,  node_type1: ns1, node_type2: ns2, index1: index1, index2: index2};
                                                     if let Some(vec_model) = messages.as_any().downcast_ref::<VecModel<Message>>() {
                                                         vec_model.push(message);
@@ -517,7 +533,7 @@ fn main() -> Result<(), slint::PlatformError> {
                                                     }
                                                 }
                                             }
-                                    }
+                                    
                                 }
                             ){
                                 Ok(_) => {
