@@ -1,9 +1,9 @@
 slint::include_modules!();
-use slint::{Model, ModelRc, VecModel};
+use slint::{Model, ModelRc, VecModel, Weak};
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-use std::thread;
+use std::thread::{self, JoinHandle};
 use std::ffi::OsString;
 
 use crossbeam::channel::{ Receiver, Sender, TryRecvError};
@@ -16,10 +16,10 @@ use wg_internal::controller::{DroneCommand, DroneEvent};
 use wg_internal::network::NodeId;
 use wg_internal::packet::{Packet, PacketType, NackType};
 
-use logger::{Logger, LogLevel};
+use logger::{LogLevel, Logger};
 
 mod utils;
-use utils::{send_drone_command, get_node_type, NodeType};
+use utils::{send_drone_command, get_node_type, NodeType, initiate_logger, run_simulation_thread};
 
 use network_initializer::parsed_nodes::{ParsedDrone, ParsedClient, ParsedServer};
 
@@ -27,6 +27,8 @@ use network_initializer::parsed_nodes::{ParsedDrone, ParsedClient, ParsedServer}
 const PATH: &str = "./config_files/star.toml";  
 
 // NOTE: functions related to slint struct cannot be moved to other files
+
+// it checks it the edge is already present in the vector
 fn check_edges(edges: &Vec<EdgeStruct>, id1: i32, id2: i32) -> bool {
     for edge in edges {
         if (edge.id1 == id1 && edge.id2 == id2) || (edge.id1 == id2 && edge.id2 == id1) {
@@ -36,12 +38,13 @@ fn check_edges(edges: &Vec<EdgeStruct>, id1: i32, id2: i32) -> bool {
     return false;
 }
 
+// it populates drones, clients and servers based on the parsed nodes from the network initializer
 fn populate_all(parsed_drones: &Vec<ParsedDrone>, parsed_servers:&Vec<ParsedServer>, parsed_clients: &Vec<ParsedClient>, edges: &mut Vec<EdgeStruct>, id_to_type: &Arc<Mutex<HashMap<i32, (NodeType, i32)>>>)-> (Vec<DroneStruct>, Vec<ClientServerStruct>, Vec<ClientServerStruct>){
     let mut drones: Vec<DroneStruct> = vec![];
     let mut clients: Vec<ClientServerStruct> = vec![];
     let mut servers: Vec<ClientServerStruct> = vec![];
     
-    // populate id_to_type
+    // populate id_to_type_pos with {id, (NodeType, position_in_vector)}
     let mut i = 0;
     for drone in parsed_drones{
         id_to_type.lock().unwrap().insert(drone.id as i32, (NodeType::Drone, i));
@@ -164,30 +167,52 @@ fn populate_all(parsed_drones: &Vec<ParsedDrone>, parsed_servers:&Vec<ParsedServ
         i = i+1;
     }
 
-    // println!("Drones: {:?}", parsed_drones);
-    // println!("Client: {:?}", parsed_clients);
-    // println!("Servers: {:?}", parsed_servers);
-
-
     return (drones, clients, servers);
 }
 
-
+fn send_message(weak: &Weak<Window>, logger_: &Arc<Mutex<Logger>>, packet: Packet, id_to_type_pos1: Arc<Mutex<HashMap<i32, (NodeType, i32)>>>){
+    let logger_int = logger_.clone();
+    match weak.upgrade_in_event_loop(move |window|{
+        let messages : ModelRc<MessageStruct> = window.get_messages();
+        let (ns1, index1) = get_node_type(packet.routing_header.hops[packet.routing_header.hop_index] as i32, &id_to_type_pos1);
+        let (ns2, index2) = get_node_type(packet.routing_header.hops[packet.routing_header.hop_index-1] as i32, &id_to_type_pos1);
+        if ns1 == -1 || ns2 == -1 {
+            logger_int.lock().unwrap().log_error(&format!("Error in getting node type"));
+        }else{
+            if let Some(vec_model) = messages.as_any().downcast_ref::<VecModel<MessageStruct>>() {
+                vec_model.push(MessageStruct{id1: packet.routing_header.hops[packet.routing_header.hop_index] as i32 , id2: packet.routing_header.hops[packet.routing_header.hop_index-1] as i32, msg_type:5, node_type1: ns1, node_type2: ns2, index1: index1, index2: index2});
+            }else{
+                window.set_messages(slint::ModelRc::new(slint::VecModel::from(vec![
+                    MessageStruct { id1: packet.routing_header.hops[packet.routing_header.hop_index] as i32 , id2: packet.routing_header.hops[packet.routing_header.hop_index-1] as i32, msg_type:5, node_type1: ns1, node_type2: ns2, index1: index1, index2: index2},
+                ])));
+            }    
+        }
+    }){
+        Ok(_) => {
+            logger_.lock().unwrap().log_debug("Message sent to window");
+        },
+        Err(e) => {
+            logger_.lock().unwrap().log_error(&format!("Error sending message to window: {}", e));
+        }
+    }
+}
 
 fn main() -> Result<(), slint::PlatformError> {
-    let logger: Arc<Mutex<Logger>> = Arc::new(Mutex::new(Logger::new(0, true, "SimulationController".to_string())));
-    (*logger).lock().unwrap().add_displayable_flag(LogLevel::All);
 
+    // initiate logger
+    let logger = initiate_logger(LogLevel::All);
+
+    // initiate slint window
     let main_window = Window::new()?;
     let window = main_window.window();
     window.set_fullscreen(true);
 
-    //initial configuration -> default
+    // initial configuration -> default
     let network_initializer: Arc<Mutex<Result<NetworkInitializer, ConfigError>>> = Arc::new(Mutex::new(NetworkInitializer::new(Some(PATH))));
     let mut sc_receiver: Arc<Mutex<Option<Receiver<DroneEvent>>>> = Arc::new(Mutex::new(None));
     let mut sc_senders: Arc<Mutex<Option<HashMap<NodeId, Sender<DroneCommand>>>>> = Arc::new(Mutex::new(None));
     let mut channels: Arc<Mutex<Option<HashMap<NodeId, Channel<Packet>>>>> = Arc::new(Mutex::new(None));
-    let id_to_type_pos: Arc<Mutex<HashMap<i32, (NodeType, i32)>>>= Arc::new(Mutex::new(HashMap::new())); // (NodeType, position_in_vector)
+    let id_to_type_pos: Arc<Mutex<HashMap<i32, (NodeType, i32)>>>= Arc::new(Mutex::new(HashMap::new())); // {id, (NodeType, position_in_vector)}
 
 
     if let Ok(ref mut c)= *network_initializer.lock().unwrap() {
@@ -212,23 +237,8 @@ fn main() -> Result<(), slint::PlatformError> {
         (*logger).lock().unwrap().log_error(&format!("Error in loading the configuration file"));
     }
 
-    // thread for running the simulation
-    let network_initializer_run_simulation = network_initializer.clone();
-    let logger_ = logger.clone();
-    thread::spawn(move || {
-        logger_.lock().unwrap().log_debug("Simulation started");
-        if let Ok(ref mut c) = *network_initializer_run_simulation.lock().unwrap() {
-            match c.run_simulation(None, None) {
-                Ok(_) => {
-                    logger_.lock().unwrap().log_debug("Simulation ended correctly");
-                }
-                Err(e) => {
-                    let error = format!("Simulation ended with error {}", e);
-                    logger_.lock().unwrap().log_error(&error);
-                }
-            }
-        }
-    });
+    // thread for running the simulation (joined at the end)
+    let run_sim_thread_handler = run_simulation_thread(logger.clone(), network_initializer.clone());
 
     // thread for receiving DroneEvent
     let logger_ = logger.clone();
@@ -247,32 +257,11 @@ fn main() -> Result<(), slint::PlatformError> {
                         // PacketDropped
                         Ok(DroneEvent::PacketDropped(packet)) => {
                             logger_.lock().unwrap().log_debug(&format!("PacketDropped received {:?}", packet));
-                            // let logger1 = logger_.clone();
-                            let id_to_type_pos1 = id_to_type_pos_.clone();
                             let downsample_dropped1 = downsample_dropped.clone();
                             *downsample_dropped1.lock().unwrap() += 1;
                             if *downsample_dropped1.lock().unwrap() % 10000 == 0 {
                                 *downsample_dropped1.lock().unwrap() = 0;
-                                match weak.upgrade_in_event_loop(move |window|{
-                                    let messages : ModelRc<MessageStruct> = window.get_messages();
-                                    let (ns1, index1) = get_node_type(packet.routing_header.hops[packet.routing_header.hop_index] as i32, &id_to_type_pos1);
-                                    let (ns2, index2) = get_node_type(packet.routing_header.hops[packet.routing_header.hop_index-1] as i32, &id_to_type_pos1);
-                                    
-                                    if let Some(vec_model) = messages.as_any().downcast_ref::<VecModel<MessageStruct>>() {
-                                        vec_model.push(MessageStruct{id1: packet.routing_header.hops[packet.routing_header.hop_index] as i32 , id2: packet.routing_header.hops[packet.routing_header.hop_index-1] as i32, msg_type:5, node_type1: ns1, node_type2: ns2, index1: index1, index2: index2});
-                                    }else{
-                                        window.set_messages(slint::ModelRc::new(slint::VecModel::from(vec![
-                                            MessageStruct { id1: packet.routing_header.hops[packet.routing_header.hop_index] as i32 , id2: packet.routing_header.hops[packet.routing_header.hop_index-1] as i32, msg_type:5, node_type1: ns1, node_type2: ns2, index1: index1, index2: index2},
-                                        ])));
-                                    }    
-                                }){
-                                    Ok(_) => {
-                                        logger_.lock().unwrap().log_debug("Message sent to window");
-                                    },
-                                    Err(e) => {
-                                        logger_.lock().unwrap().log_error(&format!("Error sending message to window: {}", e));
-                                    }
-                                }
+                                send_message(&weak, &logger_, packet, id_to_type_pos_.clone());
                             }
                         }
                         // PacketSent
@@ -1215,6 +1204,7 @@ fn main() -> Result<(), slint::PlatformError> {
             let network_initializer_run_simulation = network_initializer_.clone();
             let logger1= logger_.clone();
             let _ = std::fs::remove_dir_all("db/");
+                        
             thread::spawn(move || {
                 if let Ok(ref mut c)= *network_initializer_run_simulation.lock().unwrap() {
                     match c.run_simulation(None, None){
@@ -1346,7 +1336,7 @@ fn main() -> Result<(), slint::PlatformError> {
 
 
     let _res = main_window.run();
-
+    run_sim_thread_handler.join().unwrap();
     Ok(())
 }
 
