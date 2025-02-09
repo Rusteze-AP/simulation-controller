@@ -207,6 +207,7 @@ fn send_message(weak: &Weak<Window>, logger_: &Arc<Mutex<Logger>>, packet: Packe
             }
         }else{
             logger_int.lock().unwrap().log_error(&format!("Error in getting drones"));
+            return;
         }
 
         if ns1 == -1 || ns2 == -1{
@@ -354,26 +355,22 @@ fn main() -> Result<(), slint::PlatformError> {
         }
     });
 
-    // callback called when crashing a drone
+    
     let logger_ = logger.clone();
     let weak = main_window.as_weak();
     let senders = sc_senders.clone();
     let channels_ = channels.clone();
+    // ON CRASH : handler for crash event
     main_window.on_crash(move || {
+        logger_.lock().unwrap().log_info("[ON_CRASH]");
+
         if let Some(window) = weak.upgrade() {
             let id = window.get_id_selected_drone();
-            logger_.lock().unwrap().log_info("[ON_CRASH]");
-
-            // let drones = window.get_drones();
-            // let clients = window.get_clients();
-            // let servers = window.get_servers();
-            // let net_partition : bool= bfs(drones, clients, servers);
-
-
-            // SEND COMMAND TO DRONE
+            
+            // send crash command to drone
             send_drone_command(&senders, id as u8, Box::new(DroneCommand::Crash), &logger_);
 
-            // REMOVE ALL EDGES communicating with it
+            // remove edges communicating with it
             let edges = window.get_edges();
             let mut i: usize= 0;
             let mut to_remove: Vec<usize> = vec![];
