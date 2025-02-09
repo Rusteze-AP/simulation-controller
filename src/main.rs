@@ -177,7 +177,7 @@ fn send_message(weak: &Weak<Window>, logger_: &Arc<Mutex<Logger>>, packet: Packe
     let id2;
 
     if packet_dropped{ // if packet dropped, the sender and receiver are swapped
-        id1 =packet.routing_header.hops[packet.routing_header.hop_index] as i32;
+        id1 = packet.routing_header.hops[packet.routing_header.hop_index] as i32;
         id2 = packet.routing_header.hops[packet.routing_header.hop_index-1] as i32;
     }else{
         match packet.pack_type{ 
@@ -196,9 +196,20 @@ fn send_message(weak: &Weak<Window>, logger_: &Arc<Mutex<Logger>>, packet: Packe
     let logger_int = logger_.clone();
     match weak.upgrade_in_event_loop(move |window|{
         let messages : ModelRc<MessageStruct> = window.get_messages();
+        let drones = window.get_drones();
+
         let (ns1, index1) = get_node_type(id1, &id_to_type_pos1);
         let (ns2, index2) = get_node_type(id2, &id_to_type_pos1);
-        if ns1 == -1 || ns2 == -1 {
+
+        if let Some(vec_model) = drones.as_any().downcast_ref::<Vec<DroneStruct>>() {
+            if vec_model.get(index1 as usize).unwrap().crashed || vec_model.get(index2 as usize).unwrap().crashed{
+                return;
+            }
+        }else{
+            logger_int.lock().unwrap().log_error(&format!("Error in getting drones"));
+        }
+
+        if ns1 == -1 || ns2 == -1{
             logger_int.lock().unwrap().log_error(&format!("Error in getting node type"));
         }else{
             let message = MessageStruct{id1: id1 , id2: id2 , msg_type: type_msg, node_type1: ns1, node_type2: ns2, index1: index1, index2: index2};
