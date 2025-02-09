@@ -201,15 +201,6 @@ fn send_message(weak: &Weak<Window>, logger_: &Arc<Mutex<Logger>>, packet: Packe
         let (ns1, index1) = get_node_type(id1, &id_to_type_pos1);
         let (ns2, index2) = get_node_type(id2, &id_to_type_pos1);
 
-        if let Some(vec_model) = drones.as_any().downcast_ref::<Vec<DroneStruct>>() {
-            if vec_model.get(index1 as usize).unwrap().crashed || vec_model.get(index2 as usize).unwrap().crashed{
-                return;
-            }
-        }else{
-            logger_int.lock().unwrap().log_error(&format!("Error in getting drones"));
-            return;
-        }
-
         if ns1 == -1 || ns2 == -1{
             logger_int.lock().unwrap().log_error(&format!("Error in getting node type"));
         }else{
@@ -345,7 +336,7 @@ fn main() -> Result<(), slint::PlatformError> {
                             send_message(&weak, &logger_, packet, id_to_type_pos_.clone(), false, 6);
                         },
                         Err(TryRecvError::Empty) => {
-                            logger_.lock().unwrap().log_warn("Empty channel");
+                            // logger_.lock().unwrap().log_warn("Empty channel");
                         },
                         Err(e) => {
                             logger_.lock().unwrap().log_error(&format!("Error receiving message: {}", e));

@@ -196,6 +196,7 @@ export component Window inherits Window {
 
         step_x: (self.end_x - self.current_x) / self.counter;
         step_y: (self.end_y - self.current_y) / self.counter;
+        visible: ((messages[i].node_type1==0 && !drones[messages[i].index1].crashed) || (messages[i].node_type1==1) || (messages[i].node_type1==2)) && ((messages[i].node_type2==0 && !drones[messages[i].index2].crashed) || (messages[i].node_type2==1) || (messages[i].node_type2==2));
         background: messages[i].msg_type == 0 ? #d5d239: messages[i].msg_type == 1 ? #52fc03: messages[i].msg_type == 2? #fc0303 : messages[i].msg_type == 3 ? #3f70da : messages[i].msg_type == 4 ? #7b99db : messages[i].msg_type == 5 ? #d87d7d : #2bccd8;
         move_message => {
             self.current_x += self.step_x;
