@@ -15,7 +15,7 @@ use packet_forge::ClientType;
 use logger::{Logger, LogLevel};
 
 
-const PATH: &str = "star.toml";    
+const PATH: &str = "./config_files/star.toml";    
 const CLIENT_T : ClientType = ClientType::Video;
 const DRONE : DroneType = DroneType::NullPointerDrone;
 
@@ -1274,6 +1274,7 @@ fn main() -> Result<(), slint::PlatformError> {
             // run configuration
             let network_initializer_run_simulation = network_initializer_.clone();
             let logger1= logger_.clone();
+            let _ = std::fs::remove_dir_all("db/");
             thread::spawn(move || {
                 if let Ok(ref mut c)= *network_initializer_run_simulation.lock().unwrap() {
                     match c.run_simulation(None, Some(vec![CLIENT_T])){
@@ -1341,6 +1342,7 @@ fn main() -> Result<(), slint::PlatformError> {
                     logger1.lock().unwrap().log_warn("[cntrl+c] No sender map loaded");
                 }
             }
+            
 
             let clients = window.get_clients();
             for client in clients.iter(){
