@@ -1,9 +1,12 @@
+slint::include_modules!();
+use slint::{Model, ModelRc, VecModel, Weak};
 use std::sync::{Arc, Mutex};
 use std::collections::HashMap;
 use wg_internal::controller::DroneCommand;
 use crossbeam::channel::Sender;
 use network_initializer::{errors::ConfigError, NetworkInitializer};
 use std::thread;
+use wg_internal::packet::{Packet, PacketType, NackType};
 
 use logger::{LogLevel, Logger};
 
@@ -15,26 +18,23 @@ pub enum NodeType{
 }
 
 // send DroneCommand to drone
-pub fn send_drone_command(senders: &Arc<Mutex<Option<HashMap<u8, Sender<DroneCommand>>>>>, id:u8, command: Box<DroneCommand>)->Result<(), String>{
+pub fn send_drone_command(senders: &Arc<Mutex<Option<HashMap<u8, Sender<DroneCommand>>>>>, id:u8, command: Box<DroneCommand>, logger: &Arc<Mutex<Logger>>){
     if let Some(ref s) = *senders.lock().unwrap() {
         if let Some(sender) = s.get(&(id as u8)) {
-            let res = sender.send(*command);
+            let res = sender.send(*command.clone());
             match res {
                 Ok(_) => {
-                    return Ok(());
+                    logger.lock().unwrap().log_debug(&format!("{:?} succesfully sent to Node{}", *command, id));
                 }
                 Err(e) => {
-                    let error = format!("Error sending DroneCommand to drone {}: {:?}", id, e);
-                    return Err(error);
+                    logger.lock().unwrap().log_debug(&format!("Error sending DroneCommand to drone {}: {:?}", id, e));
                 }
             }
         } else {
-            let error = format!("No sender for drone {}", id);
-            return Err(error);
+            logger.lock().unwrap().log_debug(&format!("No sender for drone {}", id));
         }
     } else {
-        let error = format!("Empty senders map");
-        return Err(error);
+        logger.lock().unwrap().log_debug("No senders available");
     }
 }
 
@@ -72,3 +72,4 @@ pub fn run_simulation_thread(logger_ : Arc<Mutex<Logger>>, network_initializer_r
         }
     })
 }
+

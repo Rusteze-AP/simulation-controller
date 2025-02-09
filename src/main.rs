@@ -173,8 +173,8 @@ fn populate_all(parsed_drones: &Vec<ParsedDrone>, parsed_servers:&Vec<ParsedServ
 // handle the message to be sent to the slint window
 fn send_message(weak: &Weak<Window>, logger_: &Arc<Mutex<Logger>>, packet: Packet, id_to_type_pos1: Arc<Mutex<HashMap<i32, (NodeType, i32)>>>, packet_dropped : bool, type_msg: i32){
     // select sender and receiver
-    let mut id1= -1;
-    let mut id2= -1;
+    let id1;
+    let id2;
 
     if packet_dropped{ // if packet dropped, the sender and receiver are swapped
         id1 =packet.routing_header.hops[packet.routing_header.hop_index] as i32;
@@ -360,14 +360,7 @@ fn main() -> Result<(), slint::PlatformError> {
 
 
             // SEND COMMAND TO DRONE
-            match send_drone_command(&senders, id as u8, Box::new(DroneCommand::Crash)){
-                Ok(_) => {
-                    logger_.lock().unwrap().log_debug(&format!("[ON_CRASH] Crash command sent to drone {}", id));
-                }
-                Err(e) => {
-                    logger_.lock().unwrap().log_error(&format!("[ON_CRASH] Error sending crash to drone {}: {:?}", id, e));
-                }
-            }
+            send_drone_command(&senders, id as u8, Box::new(DroneCommand::Crash), &logger_);
 
             // REMOVE ALL EDGES communicating with it
             let edges = window.get_edges();
@@ -399,15 +392,7 @@ fn main() -> Result<(), slint::PlatformError> {
                         }else{
                             logger_.lock().unwrap().log_warn(&format!("[ON_CRASH] Problem in downcasting adjacents"));
                         }
-
-                        match send_drone_command(&senders, drone.id as u8, Box::new(DroneCommand::RemoveSender(id as u8))){
-                            Ok(_)=>{
-                                logger_.lock().unwrap().log_debug(&format!("[ON_CRASH] RemoveSender sent to Drone {} to remove sender of id {}", drone.id, id));
-                            },
-                            Err(e)=>{
-                                logger_.lock().unwrap().log_error(&format!("[ON_CRASH] Error in sending RemoveSender Drone {} to remove sender of id {} : {}", drone.id, id, e));
-                            }
-                        }
+                        send_drone_command(&senders, drone.id as u8, Box::new(DroneCommand::RemoveSender(id as u8)), &logger_);
                         break;
                     }
                     i = i+1;
@@ -439,15 +424,8 @@ fn main() -> Result<(), slint::PlatformError> {
                             logger_.lock().unwrap().log_warn(&format!("[ON_CRASH] Problem in downcasting adjacents"));
                         }
 
-                        match send_drone_command(&senders, server.id as u8, Box::new(DroneCommand::RemoveSender(id as u8))){
-                            Ok(_)=>{
-                                logger_.lock().unwrap().log_debug(&format!("[ON_CRASH] RemoveSender sent to Server {} to remove sender of id {}", server.id, id));
-                            },
-                            Err(e)=>{
-                                logger_.lock().unwrap().log_error(&format!("[ON_CRASH] Error in sending RemoveSender Server {} to remove sender of id {} : {}", server.id, id, e));
+                        send_drone_command(&senders, server.id as u8, Box::new(DroneCommand::RemoveSender(id as u8)), &logger_);
 
-                            }
-                        }
                         break;
                     }
                     i = i+1;
@@ -478,15 +456,7 @@ fn main() -> Result<(), slint::PlatformError> {
                             logger_.lock().unwrap().log_warn(&format!("[ON_CRASH] Problem in downcasting adjacents"));
                         }
 
-                        match send_drone_command(&senders, client.id as u8, Box::new(DroneCommand::RemoveSender(id as u8))){
-                            Ok(_)=>{
-                                logger_.lock().unwrap().log_debug(&format!("[ON_CRASH] RemoveSender sent to Client {} to remove sender of id {}", client.id, id));
-                            },
-                            Err(e)=>{
-                                logger_.lock().unwrap().log_error(&format!("[ON_CRASH] Error in sending RemoveSender Client {} to remove sender of id {} : {}", client.id, id, e));
-
-                            }
-                        }
+                        send_drone_command(&senders, client.id as u8, Box::new(DroneCommand::RemoveSender(id as u8)), &logger_);
                         break;
                     }
                     i = i+1;
@@ -534,23 +504,8 @@ fn main() -> Result<(), slint::PlatformError> {
 
 
             // COMMUNICATE REMOTION TO DRONES to id_1 and id_2
-            match send_drone_command(&senders, id_1 as u8, Box::new(DroneCommand::RemoveSender(id_2 as u8))){
-                Ok(_) => {
-                    logger_.lock().unwrap().log_info(&format!("[ON_REMOVE_EDGE] Command RemoveSender sent to Node {} to remove sender to Node {}", id_1, id_2));
-                }
-                Err(e) => {
-                    logger_.lock().unwrap().log_error(&format!("[ON_REMOVE_EDGE] Error in sending command RemoveSender sent to Node {} to remove sender to Node {} : {}", id_1, id_2, e));
-                }
-            }
-
-            match send_drone_command(&senders, id_2 as u8, Box::new(DroneCommand::RemoveSender(id_1 as u8))){
-                Ok(_) => {
-                    logger_.lock().unwrap().log_info(&format!("[ON_REMOVE_EDGE] Command RemoveSender sent to Node {} to remove sender to Node {}", id_2, id_1));
-                }
-                Err(e) => {
-                    logger_.lock().unwrap().log_error(&format!("[ON_REMOVE_EDGE] Error in sending command RemoveSender sent to Node {} to remove sender to Node {} : {}", id_2, id_1, e));
-                }
-            }
+            send_drone_command(&senders, id_1 as u8, Box::new(DroneCommand::RemoveSender(id_2 as u8)), &logger_);
+            send_drone_command(&senders, id_2 as u8, Box::new(DroneCommand::RemoveSender(id_1 as u8)), &logger_);
 
             // REMOVE EDGE
             let edges = window.get_edges();
@@ -628,23 +583,9 @@ fn main() -> Result<(), slint::PlatformError> {
             let id_2 = window.get_receiver_id();
 
             // COMMUNICATE REMOTION TO DRONES to id_1 and id_2
-            match send_drone_command(&senders, id_1 as u8, Box::new(DroneCommand::RemoveSender(id_2 as u8))){
-                Ok(_) => {
-                    logger_.lock().unwrap().log_info(&format!("[ON_REMOVE_EDGE_CLIENT_SERVER] Command RemoveSender sent to Node {} to remove sender to Node {}", id_1, id_2));
-                }
-                Err(e) => {
-                    logger_.lock().unwrap().log_error(&format!("[ON_REMOVE_EDGE_CLIENT_SERVER] Error in sending command RemoveSender sent to Node {} to remove sender to Node {} : {}", id_1, id_2, e));
-                }
-            }
+            send_drone_command(&senders, id_1 as u8, Box::new(DroneCommand::RemoveSender(id_2 as u8)), &logger_);
 
-            match send_drone_command(&senders, id_2 as u8, Box::new(DroneCommand::RemoveSender(id_1 as u8))){
-                Ok(_) => {
-                    logger_.lock().unwrap().log_info(&format!("[ON_REMOVE_EDGE_CLIENT_SERVER] Command RemoveSender sent to Node {} to remove sender to Node {}", id_2, id_1));
-                }
-                Err(e) => {
-                    logger_.lock().unwrap().log_error(&format!("[ON_REMOVE_EDGE_CLIENT_SERVER] Error in sending command RemoveSender sent to Node {} to remove sender to Node {} : {}", id_2, id_1, e));
-                }
-            }
+            send_drone_command(&senders, id_2 as u8, Box::new(DroneCommand::RemoveSender(id_1 as u8)), &logger_);
 
             // REMOVE EDGE
             let edges = window.get_edges();
@@ -749,27 +690,13 @@ fn main() -> Result<(), slint::PlatformError> {
 
             // COMMUNICATE ADDITION TO DRONES to id_1 and id_2
             if let Some(s_id_2)= sender_id_2{
-                match send_drone_command(&senders, id_1 as u8, Box::new(DroneCommand::AddSender(id_2 as u8, s_id_2))){
-                    Ok(_) => {
-                        logger_.lock().unwrap().log_debug(&format!("[ON_ADD_EDGE] Command AddSender to Node {} to add edge to Node {}", id_1, id_2));
-                    }
-                    Err(e) => {
-                        logger_.lock().unwrap().log_error(&format!("[ON_ADD_EDGE] Error sending command AddSender to Node {} to add edge to Node {} : {}", id_1, id_2, e));
-                    }
-                }
+                send_drone_command(&senders, id_1 as u8, Box::new(DroneCommand::AddSender(id_2 as u8, s_id_2)), &logger_);
             } else {
                 logger_.lock().unwrap().log_error(&format!("[ON_ADD_EDGE] No sender for drone {}", id_2));
             }
 
             if let Some(s_id_1)= sender_id_1{
-                match send_drone_command(&senders, id_2 as u8, Box::new(DroneCommand::AddSender(id_1 as u8, s_id_1))){
-                    Ok(_) => {
-                        logger_.lock().unwrap().log_debug(&format!("[ON_ADD_EDGE] Command AddSender to Node {} to add edge to Node {}", id_2, id_1));
-                    }
-                    Err(e) => {
-                        logger_.lock().unwrap().log_error(&format!("[ON_ADD_EDGE] Error sending command AddSender to Node {} to add edge to Node {} : {}", id_2, id_1, e));
-                    }
-                }
+                send_drone_command(&senders, id_2 as u8, Box::new(DroneCommand::AddSender(id_1 as u8, s_id_1)), &logger_);
             } else {
                 logger_.lock().unwrap().log_error(&format!("[ON_ADD_EDGE] No sender for drone {}", id_1));
             }
@@ -862,26 +789,12 @@ fn main() -> Result<(), slint::PlatformError> {
 
             // COMMUNICATE ADDITION TO DRONES to id_1 and id_2
             if let Some(s_id_2)= sender_id_2{
-                match send_drone_command(&senders, id_1 as u8, Box::new(DroneCommand::AddSender(id_2 as u8, s_id_2))){
-                    Ok(_) => {
-                        logger_.lock().unwrap().log_debug(&format!("[ON_ADD_EDGE_CLIENT_SERVER] Command AddSender to Node {} to add edge to Node {}", id_1, id_2));
-                    }
-                    Err(e) => {
-                        logger_.lock().unwrap().log_debug(&format!("[ON_ADD_EDGE_CLIENT_SERVER] Error sending command AddSender to Node {} to add edge to Node {}: {}", id_1, id_2, e));
-                    }
-                }
+                send_drone_command(&senders, id_1 as u8, Box::new(DroneCommand::AddSender(id_2 as u8, s_id_2)), &logger_);
             }
+            
 
             if let Some(s_id_1)= sender_id_1{
-                match send_drone_command(&senders, id_2 as u8, Box::new(DroneCommand::AddSender(id_1 as u8, s_id_1))){
-                    Ok(_) => {
-                        logger_.lock().unwrap().log_debug(&format!("[ON_ADD_EDGE_CLIENT_SERVER] Command AddSender to Node {} to add edge to Node {}", id_2, id_1));
-
-                    }
-                    Err(e) => {
-                        logger_.lock().unwrap().log_debug(&format!("[ON_ADD_EDGE_CLIENT_SERVER] Error sending command AddSender to Node {} to add edge to Node {}: {}", id_2, id_1, e));
-                    }
-                }
+                send_drone_command(&senders, id_2 as u8, Box::new(DroneCommand::AddSender(id_1 as u8, s_id_1)), &logger_);
             }
 
             // ADD EDGE
@@ -949,7 +862,6 @@ fn main() -> Result<(), slint::PlatformError> {
                 }
             }
         }
-        
     });
 
 
@@ -963,18 +875,11 @@ fn main() -> Result<(), slint::PlatformError> {
             let id = window.get_id_selected_drone();
             let new_pdr = window.get_new_pdr();
 
-            match send_drone_command(&senders, id as u8, Box::new(DroneCommand::SetPacketDropRate(new_pdr))){
-                Ok(_) => {
-                    logger_.lock().unwrap().log_debug(&format!("[ON_CHANGE_PDR] SetPacketDropRate sent to drone {} to set pdr to {}", id, new_pdr));
-                }
-                Err(e) => {
-                    logger_.lock().unwrap().log_error(&format!("[ON_CHANGE_PDR] Error sending SetPacketDropRate sent to drone {} to set pdr to {} : {}", id, new_pdr, e));
-                }
-            }
+            send_drone_command(&senders, id as u8, Box::new(DroneCommand::SetPacketDropRate(new_pdr)), &logger_);
         }
     });
 
-    // NON VA NULLA
+    
     let logger_ = logger.clone();
     let weak = main_window.as_weak();
     let senders = sc_senders.clone();
@@ -1006,25 +911,10 @@ fn main() -> Result<(), slint::PlatformError> {
                     let drones = window.get_drones();
 
                     for drone in drones.iter(){
-                        match send_drone_command(&senders, drone.id as u8, Box::new(DroneCommand::Crash)){
-                            Ok(_) => {
-                                println!("[SIMULATION CONTROLLER] Drone {} crashed", drone.id);
-                                logger_.lock().unwrap().log_debug(&format!("[ON_SELECT_NEW_FILE] Command Crash to Drone {}", drone.id));
-                            }
-                            Err(e) => {
-                                logger_.lock().unwrap().log_error(&format!("[ON_SELECT_NEW_FILE] Error sending Crash to Drone {}: {}", drone.id, e));
-                            }
-                        }
+                        send_drone_command(&senders, drone.id as u8, Box::new(DroneCommand::Crash), &logger_);
 
                         for adj in drone.adjent.iter(){
-                            match send_drone_command(&senders, adj as u8, Box::new(DroneCommand::RemoveSender(drone.id as u8))){
-                                Ok(_) => {
-                                    logger_.lock().unwrap().log_debug(&format!("[ON_SELECT_NEW_FILE] Command RemoveSender to Drone {} to remove {}", drone.id, adj));
-                                }
-                                Err(e) => {
-                                    logger_.lock().unwrap().log_error(&format!("[ON_SELECT_NEW_FILE] Error sending command RemoveSender to Drone {} to remove {}: {}", drone.id, adj, e));
-                                }
-                            }
+                            send_drone_command(&senders, adj as u8, Box::new(DroneCommand::RemoveSender(drone.id as u8)), &logger_);
                         }
 
                         if let Some(ref mut channel) = *channels_.lock().unwrap() {
@@ -1042,14 +932,7 @@ fn main() -> Result<(), slint::PlatformError> {
 
                     let clients = window.get_clients();
                     for client in clients.iter(){
-                        match send_drone_command(&senders, client.id as u8, Box::new(DroneCommand::Crash)){
-                            Ok(_) => {
-                                logger_.lock().unwrap().log_debug(&format!("[ON_SELECT_NEW_FILE] Command Crash to Client {}", client.id));
-                            }
-                            Err(e) => {
-                                logger_.lock().unwrap().log_error(&format!("[ON_SELECT_NEW_FILE] Error sending Crash to Client {}: {}", client.id, e));
-                            }
-                        }
+                        send_drone_command(&senders, client.id as u8, Box::new(DroneCommand::Crash), &logger_);
 
                         if let Some(ref mut channel) = *channels_.lock().unwrap() {
                             channel.remove(&(client.id as u8));
@@ -1066,14 +949,7 @@ fn main() -> Result<(), slint::PlatformError> {
 
                     let servers = window.get_servers();
                     for server in servers.iter(){
-                        match send_drone_command(&senders, server.id as u8, Box::new(DroneCommand::Crash)){
-                            Ok(_) => {
-                                logger_.lock().unwrap().log_debug(&format!("[ON_SELECT_NEW_FILE] Command Crash to Server {}", server.id));
-                            }
-                            Err(e) => {
-                                logger_.lock().unwrap().log_error(&format!("[ON_SELECT_NEW_FILE] Error sending Crash to Server {}: {}", server.id, e));
-                            }
-                        }
+                        send_drone_command(&senders, server.id as u8, Box::new(DroneCommand::Crash), &logger_);
 
                         if let Some(ref mut channel) = *channels_.lock().unwrap() {
                             channel.remove(&(server.id as u8));
@@ -1090,9 +966,9 @@ fn main() -> Result<(), slint::PlatformError> {
                     window.set_edges(slint::ModelRc::new(slint::VecModel::from(vec![])));
                 }
 
-                // set new config
+                
                 while network_initializer_.try_lock().is_err() {
-                    // thread::sleep(Duration::from_millis(100));
+                    // wait for the other simulation to terminate
                 }
                 *network_initializer_.lock().unwrap() = Ok(net_init);
                 failed = false;
@@ -1172,24 +1048,10 @@ fn main() -> Result<(), slint::PlatformError> {
             let drones = window.get_drones();
 
             for drone in drones.iter(){
-                match send_drone_command(&senders1, drone.id as u8, Box::new(DroneCommand::Crash)){
-                    Ok(_) => {
-                        logger1.lock().unwrap().log_debug(&format!("[cntrl+c] Command Crash to Drone {}", drone.id));
-                    }
-                    Err(e) => {
-                        logger1.lock().unwrap().log_error(&format!("[cntrl+c] Error in sending command Crash to Drone {}: {}", drone.id, e));
-                    }
-                }
+                send_drone_command(&senders1, drone.id as u8, Box::new(DroneCommand::Crash), &logger1);
 
                 for adj in drone.adjent.iter(){
-                    match send_drone_command(&senders1, adj as u8, Box::new(DroneCommand::RemoveSender(drone.id as u8))){
-                        Ok(_) => {
-                            logger1.lock().unwrap().log_debug(&format!("[cntrl+c] Command RemoveSender to Drone {} to remove {}", drone.id, adj));
-                        }
-                        Err(e) => {
-                            logger1.lock().unwrap().log_error(&format!("[cntrl+c] Error sending command RemoveSender to Drone {} to remove {}: {}", drone.id, adj, e));
-                        }
-                    }
+                    send_drone_command(&senders1, adj as u8, Box::new(DroneCommand::RemoveSender(drone.id as u8)), &logger1);
                 }
 
                 if let Some(ref mut channel) = *channels1.lock().unwrap() {
@@ -1207,14 +1069,7 @@ fn main() -> Result<(), slint::PlatformError> {
 
             let clients = window.get_clients();
             for client in clients.iter(){
-                match send_drone_command(&senders1, client.id as u8, Box::new(DroneCommand::Crash)){
-                    Ok(_) => {
-                        logger1.lock().unwrap().log_debug(&format!("[cntrl+c] Command Crash to Drone {}", client.id));
-                    }
-                    Err(e) => {
-                        logger1.lock().unwrap().log_error(&format!("[cntrl+c] Error in sending command Crash to Drone {}: {}", client.id, e));
-                    }
-                }
+                send_drone_command(&senders1, client.id as u8, Box::new(DroneCommand::Crash), &logger1);
 
                 if let Some(ref mut channel) = *channels1.lock().unwrap() {
                     channel.remove(&(client.id as u8));
@@ -1231,14 +1086,7 @@ fn main() -> Result<(), slint::PlatformError> {
 
             let servers = window.get_servers();
             for server in servers.iter(){
-                match send_drone_command(&senders1, server.id as u8, Box::new(DroneCommand::Crash)){
-                    Ok(_) => {
-                        logger1.lock().unwrap().log_debug(&format!("[cntrl+c] Command Crash to Server {}", server.id));
-                    }
-                    Err(e) => {
-                        logger1.lock().unwrap().log_error(&format!("[cntrl+c] Error in sending command Crash to Server {}: {}", server.id, e));
-                    }
-                }
+                send_drone_command(&senders1, server.id as u8, Box::new(DroneCommand::Crash), &logger1);
 
                 if let Some(ref mut channel) = *channels1.lock().unwrap() {
                     channel.remove(&(server.id as u8));
@@ -1270,9 +1118,3 @@ fn main() -> Result<(), slint::PlatformError> {
     run_sim_thread_handler.join().unwrap();
     Ok(())
 }
-
-
-
-// TODO (annina):
-// - sarebbbe figo avere controlli network partitions (non necesssario)
-// - volendo fare link basati su pdr
