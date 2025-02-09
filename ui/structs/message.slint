@@ -1,0 +1,10 @@
+
+export struct Message{
+    id1: int,
+    id2: int,
+    msg_type: int, // 0 = packetSent-msgFragment, 1 packetSent-ack, 2 packetSent-Nack, 3 = packetSent-FloodRequest,  4=packetSent-FloodResponse, 5=packetDropped, 6=controllerShortcut
+    node_type1: int, // 0 = drone, 1 = client, 2 = server
+    node_type2: int, // 0 = drone, 1 = client, 2 = server
+    index1: int,
+    index2: int,
+}

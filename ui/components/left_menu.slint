@@ -1,0 +1,62 @@
+import { ClientServer } from "../structs/client_server.slint";
+import { VerticalBox, Button } from "std-widgets.slint";
+
+export component LeftMenu inherits Window{
+
+    in-out property <string> id_selected_client_server;
+    in-out property <int> position_selected_client_server;
+    in-out property <string> label_id;
+    in-out property <ClientServer> selected;
+    in-out property <int> edge_selected;
+    callback remove_edge();
+    callback add_edge();
+
+    
+    Rectangle {
+        x:0px;
+        y:0px;
+        width: parent.width;
+        height: parent.height/20;
+        background: #a0b1e4;
+        border-color: black;
+        border-width: 0.5px;
+        Text {
+            text: "Clent-Server Control: " + label_id;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+            color: black;
+        }
+    }
+
+    for i in self.selected.drones_adjacent: Button {
+        width: parent.width/2;
+        height: parent.height/20;
+        preferred-height: 100%;
+        preferred-width: 100%;
+        text: "Remove link with " + i;
+        x: 0px;
+        y: parent.height/20 + i*parent.height/20;
+
+        clicked => {
+            edge_selected = i;
+            if selected.drones_adjacent.length > 1{
+                remove_edge();
+            }else{
+                self.text = "Can't remove last connection";
+            }
+        }
+    }
+
+    for d in self.selected.drones_not_adjacent: Button{
+        width: parent.width/2;
+        height: parent.height/20;
+        text: "Add link with " + d;
+        
+        x: parent.width/2;
+        y: parent.height/20 + d*parent.height/20;
+        clicked => {
+            edge_selected = d;
+            add_edge();
+        }
+    }
+}

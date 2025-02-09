@@ -1,0 +1,23 @@
+export component Drone inherits Rectangle{
+    callback open_right_window;
+    in property <string> label_id;
+
+    height: 64px;
+    width: 64px;
+    preferred-height: 100%;
+    preferred-width: 100%;
+    border-radius: self.width/2;
+
+    Text {
+        text: label_id;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+        color: black;
+    }
+
+    TouchArea {
+        clicked => {
+            open_right_window();
+        }
+    }
+}

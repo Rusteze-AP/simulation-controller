@@ -1,0 +1,23 @@
+export component Message inherits Rectangle{
+    callback move_message();
+
+    in-out property <float> end_x;
+    in-out property <float> end_y;
+    in-out property <float> current_x;
+    in-out property <float> current_y;
+    in-out property <float> step_x;
+    in-out property <float> step_y;
+    in-out property <int> counter;
+
+
+    height: 12px;
+    width: 12px;
+    preferred-height: 100%;
+    preferred-width: 100%;
+    background: #d5d239;
+    border-radius: self.width/2;
+    x: current_x*1px -6px;
+    y: current_y*1px -6px;
+    counter: 20;
+    animate background { duration: 800ms; } 
+}

@@ -1,0 +1,22 @@
+export component Edge inherits Path {
+    in property <int> x1;
+    in property <int> x2;
+    in property <int> y1;
+    in property <int> y2;
+    in-out property <float> start_x;
+    in-out property <float> start_y;
+    in-out property <float> end_x;
+    in-out property <float> end_y;
+
+    stroke: #ffffff;
+    stroke-width: 2px;
+
+    MoveTo {
+        x: start_x;
+        y: start_y;
+    }
+    LineTo {
+        x: end_x;
+        y: end_y;
+    }
+}

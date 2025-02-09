@@ -1,0 +1,86 @@
+import { Button } from "std-widgets.slint";
+
+export component Legend inherits Window{
+    in property <int> width-size;
+    in property <int> height-size;
+
+    Rectangle{
+        background: #ffffff;
+        width: width-size*1px;
+        height: height-size*7px;
+
+        GridLayout {
+            Row{
+                Rectangle {
+                    width: width-size*1px;
+                    height: height-size*1px;
+                    background: #d5d239;
+                }
+                Text {
+                    text: "packetSent-msgFragment";
+                }
+            }
+            Row{
+                Rectangle {
+                    width: width-size*1px;
+                    height: height-size*1px;
+                    background: #52fc03;
+                }
+                Text {
+                    text: "packetSent-ack";
+                }
+            }
+            Row{
+                Rectangle {
+                    width: width-size*1px;
+                    height: height-size*1px;
+                    background: #fc0303;
+                }
+                Text {
+                    text: "packetSent-Nack";
+                }
+            }
+            Row{
+                Rectangle {
+                    width: width-size*1px;
+                    height: height-size*1px;
+                    background: #3f70da;
+                }
+                Text {
+                    text: "packetSent-FloodRequest";
+                }
+            }
+            Row{
+                Rectangle {
+                    width: width-size*1px;
+                    height: height-size*1px;
+                    background: #7b99db;
+                }
+                Text {
+                    text: "packetSent-FloodResponse";
+                }
+            }
+            Row{
+                Rectangle {
+                    width: width-size*1px;
+                    height: height-size*1px;
+                    background: #d87d7d;
+                }
+                Text {
+                    text: "packetDropped";
+                }
+            }
+            Row{
+                Rectangle {
+                    width: width-size*1px;
+                    height: height-size*1px;
+                    background: #2bccd8;
+                }
+                Text {
+                    text: "controllerShortcut";
+                }
+            }
+        }
+    }
+    
+}

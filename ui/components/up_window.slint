@@ -1,0 +1,16 @@
+import { Button } from "std-widgets.slint";
+
+export component UpWindow inherits Window{
+    callback select_new_file();
+
+    GridLayout {
+        Row{
+            Button {
+                text: "Change configuration file";
+                clicked()=>{
+                    select_new_file();
+                }
+            }
+        }
+    }
+}
