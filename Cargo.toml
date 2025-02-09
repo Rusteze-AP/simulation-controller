@@ -9,20 +9,19 @@ rfd = "0.15.1"
 crossbeam = "0.8.4"
 winit = "0.29"
 ctrlc = "3.1"
-network-initializer = { git = "ssh://git@github.com/Rusteze-AP/network-initializer.git", branch = "main" }
-# network-initializer = { path = "../network-initializer" }
+
+
 wg_internal = { git = "https://github.com/WGL-2024/WGL_repo_2024.git", features = [
     "debug",
 ] }
-# rusteze_drone = { git = "ssh://git@github.com/Rusteze-AP/drone.git", branch = "debug" }
-# rusteze_drone = { path="../drone" }
+
 client-video = { git = "ssh://git@github.com/Rusteze-AP/client-video.git", branch = "main" }
 client-audio = { git = "ssh://git@github.com/Rusteze-AP/client-audio.git", branch = "main" }
-# client = { path = "../client"}
 server = { git = "ssh://git@github.com/Rusteze-AP/server.git", branch = "main" }
+
 logger = { git = "https://github.com/Rusteze-AP/logger.git", branch = "main" }
 packet_forge = { git = "ssh://git@github.com/Rusteze-AP/packet-forge.git", branch = "main" }
-# packet_forge = { path = "../packet-forge" }
+network-initializer = { git = "ssh://git@github.com/Rusteze-AP/network-initializer.git", branch = "main" }
 
 
 [build-dependencies]
