@@ -13,7 +13,7 @@ import { RightMenu } from "components/right_menu.slint";
 import { UpWindow } from "components/up_window.slint";
 import { Legend } from "components/legend.slint";
 
-component Window inherits Window {
+export component Window inherits Window {
     callback open_right_window;
     callback select_new_file;
     callback reactivate_drone();
@@ -34,7 +34,7 @@ component Window inherits Window {
     in-out property <int> type_selected:1; //client = 1, server = 2
     in-out property <int> receiver_id;
     in-out property <int> sender_id;
-    in-out property <[DroneStruct]> drones; // tenere campo crashed e continuare a fare vedere i droni morti con background diverso e senza gesture
+    in-out property <[DroneStruct]> drones;
     in-out property <[ClientServerStruct]> clients;
     in-out property <[ClientServerStruct]> servers;
     in-out property <[EdgeStruct]> edges;
@@ -45,6 +45,7 @@ component Window inherits Window {
     preferred-width: 100%;
     background: #000000;
 
+    // EDGES
     for edge[i] in edges: EdgeComponent{
         x1: edges[i].node_type1==0 ? (parent.width/2.15 + (parent.height / 4) * cos(2 * 1rad * 3.14159 * edges[i].id1 /10) + (node_size*1px / 2) + 1px*node_size/2)/1px : (edges[i].node_type1==1?  (parent.width/4 +1px*node_size/2)/1px : (parent.width - parent.width/3 +1px*node_size/2)/1px) ;
         y1: edges[i].node_type1==0 ?(parent.height/2.5 +(parent.height / 4) * sin(2 * 1rad* 3.14159 * edges[i].id1 / 10) + (node_size*1px / 3) +1px*node_size/2)/1px: ( edges[i].node_type1==1 ? (parent.height/3 +(edges[i].index1) *parent.height/6 +1px*node_size/2)/1px : (parent.height/3 +(edges[i].index1)*parent.height/6 + 1px*node_size/2)/1px);
@@ -63,10 +64,12 @@ component Window inherits Window {
         stroke: #ffffff;
     }
 
+    // DRONES
     for drone[i] in drones : DroneComponent {
         width: node_size*1px;
         height: node_size*1px;
-        // circular positioning
+
+        // circular positioning of drones
         x: parent.width/2.15 + (parent.height / 4) * cos(2 * 1rad * 3.14159 * drone.id /10) + (self.width / 2);
         y: parent.height/2.5 +(parent.height / 4) * sin(2 * 1rad* 3.14159 * drone.id / 10) + (self.height / 3);
         label_id: "Drone" + drone.id;
@@ -81,7 +84,7 @@ component Window inherits Window {
         }
     }
 
-
+    // CLIENTS
     for client[i] in clients : ClientServerComponent {
         width: node_size*1px;
         height: node_size*1px;
@@ -100,12 +103,13 @@ component Window inherits Window {
         }
     }
 
+    // SERVERS
     for server[i] in servers : ClientServerComponent {
         width: node_size*1px;
         height: node_size*1px;
         preferred-height: 100%;
         preferred-width: 100%;
-        // x: parent.width/5 + 2*parent.height/4+ parent.width/7;
+        
         x: parent.width - parent.width/3;
         y: parent.height/3 +i*parent.height/6;
         label_id: "Server" + server.id;
@@ -118,7 +122,7 @@ component Window inherits Window {
         }
     }
 
-    // TODO: sistemare posizione, colore, ecc.
+    // Control panel for client and servers
     LeftMenu {
         width: parent.width/5;
         height: parent.height;
@@ -141,9 +145,7 @@ component Window inherits Window {
         }
     }
 
-
-
-    // TODO: sistemare posizione, colore, ecc.
+    // Control panel for drones
     RightMenu {
         width: parent.width/5;
         height: parent.height;
@@ -185,8 +187,7 @@ component Window inherits Window {
 
     }
 
-
-
+    // MESSAGES
     for message[i] in messages : MessageComponent {
         current_x: messages[i].node_type1==0 ? (parent.width/2.15 + (parent.height / 4) * cos(2 * 1rad * 3.14159 * messages[i].id1 /10) + (node_size*1px / 2) +1px*node_size/2)/1px : (messages[i].node_type1==1 ?  (parent.width/4 +1px*node_size/2)/1px : (parent.width - parent.width/3 +1px*node_size/2)/1px) ;
         current_y: messages[i].node_type1==0?(parent.height/2.5 +(parent.height / 4) * sin(2 * 1rad* 3.14159 * messages[i].id1 / 10) + (node_size*1px / 3) +1px*node_size/2)/1px: ( messages[i].node_type1==1 ? (parent.height/3 +(messages[i].index1) *parent.height/6 +1px*node_size/2)/1px : (parent.height/3 +(messages[i].index1)*parent.height/6 + 1px*node_size/2)/1px);
@@ -211,6 +212,7 @@ component Window inherits Window {
         }
     }
 
+    // Panel to change configuation file
     UpWindow {
         x: parent.width/2 - self.width/2;
         y: parent.height/20;
@@ -220,6 +222,7 @@ component Window inherits Window {
         }
     }
 
+    // Legend of colors of messages
     Legend {
         x: parent.width/2 - self.width/2;
         y: parent.height - parent.height/20 - self.height;
