@@ -263,7 +263,7 @@ fn send_message(
 
 fn main() -> Result<(), slint::PlatformError> {
     // initiate logger
-    let logger = initiate_logger(LogLevel::All);
+    let logger = initiate_logger(LogLevel::Info);
 
     // initiate slint window
     let main_window = Window::new()?;
