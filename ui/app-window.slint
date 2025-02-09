@@ -1,13 +1,13 @@
 import { VerticalBox, Button, LineEdit, Slider } from "std-widgets.slint";
-import { Drone } from "structs/drone.slint";
-import { Message } from "structs/message.slint";
-import { ClientServer } from "structs/client_server.slint";
-import { Edge } from "structs/edge.slint";
+import { DroneStruct } from "structs/drone.slint";
+import { MessageStruct } from "structs/message.slint";
+import { ClientServerStruct } from "structs/client_server.slint";
+import { EdgeStruct } from "structs/edge.slint";
 
-import { Drone } from "components/drone.slint";
-import { ClientServer } from "components/client_server.slint";
-import { Edge } from "components/edge.slint";
-import { Message } from "components/message.slint";
+import { DroneComponent } from "components/drone.slint";
+import { ClientServerComponent } from "components/client_server.slint";
+import { EdgeComponent } from "components/edge.slint";
+import { MessageComponent } from "components/message.slint";
 import { LeftMenu } from "components/left_menu.slint";
 import { RightMenu } from "components/right_menu.slint";
 import { UpWindow } from "components/up_window.slint";
@@ -34,18 +34,18 @@ component Window inherits Window {
     in-out property <int> type_selected:1; //client = 1, server = 2
     in-out property <int> receiver_id;
     in-out property <int> sender_id;
-    in-out property <[Drone]> drones; // tenere campo crashed e continuare a fare vedere i droni morti con background diverso e senza gesture
-    in-out property <[ClientServer]> clients;
-    in-out property <[ClientServer]> servers;
-    in-out property <[Edge]> edges;
-    in-out property<[Message]> messages;
+    in-out property <[DroneStruct]> drones; // tenere campo crashed e continuare a fare vedere i droni morti con background diverso e senza gesture
+    in-out property <[ClientServerStruct]> clients;
+    in-out property <[ClientServerStruct]> servers;
+    in-out property <[EdgeStruct]> edges;
+    in-out property<[MessageStruct]> messages;
     in-out property <float> new_pdr;
 
     preferred-height: 100%;
     preferred-width: 100%;
     background: #000000;
 
-    for edge[i] in edges: Edge{
+    for edge[i] in edges: EdgeComponent{
         x1: edges[i].node_type1==0 ? (parent.width/2.15 + (parent.height / 4) * cos(2 * 1rad * 3.14159 * edges[i].id1 /10) + (node_size*1px / 2) + 1px*node_size/2)/1px : (edges[i].node_type1==1?  (parent.width/4 +1px*node_size/2)/1px : (parent.width - parent.width/3 +1px*node_size/2)/1px) ;
         y1: edges[i].node_type1==0 ?(parent.height/2.5 +(parent.height / 4) * sin(2 * 1rad* 3.14159 * edges[i].id1 / 10) + (node_size*1px / 3) +1px*node_size/2)/1px: ( edges[i].node_type1==1 ? (parent.height/3 +(edges[i].index1) *parent.height/6 +1px*node_size/2)/1px : (parent.height/3 +(edges[i].index1)*parent.height/6 + 1px*node_size/2)/1px);
         x2: edges[i].node_type2==0 ? (parent.width/2.15 + (parent.height / 4) * cos(2 * 1rad * 3.14159 * edges[i].id2 /10) + (node_size*1px / 2) +1px*node_size/2)/1px : (edges[i].node_type2==1 ?  (parent.width/4 +1px*node_size/2)/1px : (parent.width - parent.width/3 +1px*node_size/2)/1px);
@@ -63,7 +63,7 @@ component Window inherits Window {
         stroke: #ffffff;
     }
 
-    for drone[i] in drones : Drone {
+    for drone[i] in drones : DroneComponent {
         width: node_size*1px;
         height: node_size*1px;
         // circular positioning
@@ -82,7 +82,7 @@ component Window inherits Window {
     }
 
 
-    for client[i] in clients : ClientServer {
+    for client[i] in clients : ClientServerComponent {
         width: node_size*1px;
         height: node_size*1px;
         preferred-height: 100%;
@@ -100,7 +100,7 @@ component Window inherits Window {
         }
     }
 
-    for server[i] in servers : ClientServer {
+    for server[i] in servers : ClientServerComponent {
         width: node_size*1px;
         height: node_size*1px;
         preferred-height: 100%;
@@ -187,7 +187,7 @@ component Window inherits Window {
 
 
 
-    for message[i] in messages : Message {
+    for message[i] in messages : MessageComponent {
         current_x: messages[i].node_type1==0 ? (parent.width/2.15 + (parent.height / 4) * cos(2 * 1rad * 3.14159 * messages[i].id1 /10) + (node_size*1px / 2) +1px*node_size/2)/1px : (messages[i].node_type1==1 ?  (parent.width/4 +1px*node_size/2)/1px : (parent.width - parent.width/3 +1px*node_size/2)/1px) ;
         current_y: messages[i].node_type1==0?(parent.height/2.5 +(parent.height / 4) * sin(2 * 1rad* 3.14159 * messages[i].id1 / 10) + (node_size*1px / 3) +1px*node_size/2)/1px: ( messages[i].node_type1==1 ? (parent.height/3 +(messages[i].index1) *parent.height/6 +1px*node_size/2)/1px : (parent.height/3 +(messages[i].index1)*parent.height/6 + 1px*node_size/2)/1px);
         end_x: messages[i].node_type2==0 ? (parent.width/2.15 + (parent.height / 4) * cos(2 * 1rad * 3.14159 * messages[i].id2 /10) + (node_size*1px / 2) +1px*node_size/2)/1px : (messages[i].node_type2==1 ?  (parent.width/4 +1px*node_size/2)/1px : (parent.width - parent.width/3 +1px*node_size/2)/1px);

@@ -1,4 +1,4 @@
-import {Drone} from "../structs/drone.slint";
+import {DroneStruct} from "../structs/drone.slint";
 import { VerticalBox, Button, Slider } from "std-widgets.slint";
 
 export component RightMenu inherits Window{
@@ -10,7 +10,7 @@ export component RightMenu inherits Window{
 
 
     in-out property <string> label_id;
-    in-out property <Drone> selected_drone;
+    in-out property <DroneStruct> selected_drone;
     in-out property <int> edge_selected;
     in-out property <float> tmp_pdr: selected_drone.pdr;
 

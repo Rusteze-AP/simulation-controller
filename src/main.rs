@@ -1,25 +1,33 @@
 slint::include_modules!();
-use crossbeam::channel::{ Receiver, Sender, TryRecvError};
-use network_initializer::{errors::ConfigError, NetworkInitializer, parsed_nodes::{ParsedDrone, ParsedClient, ParsedServer}, DroneType};
 use slint::{Model, ModelRc, VecModel};
+
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::thread;
+use std::ffi::OsString;
+
+use crossbeam::channel::{ Receiver, Sender, TryRecvError};
+use rfd::FileDialog;
+
+use network_initializer::{errors::ConfigError, NetworkInitializer};
+use network_initializer::channel::Channel;
+
 use wg_internal::controller::{DroneCommand, DroneEvent};
 use wg_internal::network::NodeId;
 use wg_internal::packet::{Packet, PacketType, NackType};
-use network_initializer::channel::Channel;
-use rfd::FileDialog;
-use std::ffi::OsString;
-use packet_forge::ClientType;
+
 use logger::{Logger, LogLevel};
 
+mod utils;
+use utils::{send_drone_command, get_node_type, NodeType};
 
-const PATH: &str = "./config_files/star.toml";    
-const CLIENT_T : ClientType = ClientType::Video;
-const DRONE : DroneType = DroneType::NullPointerDrone;
+use network_initializer::parsed_nodes::{ParsedDrone, ParsedClient, ParsedServer};
 
-fn check_edges(edges: &Vec<Edge>, id1: i32, id2: i32) -> bool {
+
+const PATH: &str = "./config_files/star.toml";  
+
+// NOTE: functions related to slint struct cannot be moved to other files
+fn check_edges(edges: &Vec<EdgeStruct>, id1: i32, id2: i32) -> bool {
     for edge in edges {
         if (edge.id1 == id1 && edge.id2 == id2) || (edge.id1 == id2 && edge.id2 == id1) {
             return true;
@@ -28,10 +36,10 @@ fn check_edges(edges: &Vec<Edge>, id1: i32, id2: i32) -> bool {
     return false;
 }
 
-fn populate_all(parsed_drones: &Vec<ParsedDrone>, parsed_servers:&Vec<ParsedServer>, parsed_clients: &Vec<ParsedClient>, edges: &mut Vec<Edge>, id_to_type: &Arc<Mutex<HashMap<i32, (NodeType, i32)>>>)-> (Vec<Drone>, Vec<ClientServer>, Vec<ClientServer>){
-    let mut drones: Vec<Drone> = vec![];
-    let mut clients: Vec<ClientServer> = vec![];
-    let mut servers: Vec<ClientServer> = vec![];
+fn populate_all(parsed_drones: &Vec<ParsedDrone>, parsed_servers:&Vec<ParsedServer>, parsed_clients: &Vec<ParsedClient>, edges: &mut Vec<EdgeStruct>, id_to_type: &Arc<Mutex<HashMap<i32, (NodeType, i32)>>>)-> (Vec<DroneStruct>, Vec<ClientServerStruct>, Vec<ClientServerStruct>){
+    let mut drones: Vec<DroneStruct> = vec![];
+    let mut clients: Vec<ClientServerStruct> = vec![];
+    let mut servers: Vec<ClientServerStruct> = vec![];
     
     // populate id_to_type
     let mut i = 0;
@@ -58,7 +66,7 @@ fn populate_all(parsed_drones: &Vec<ParsedDrone>, parsed_servers:&Vec<ParsedServ
             adjent.push(*adj as i32);
             if !check_edges(&edges, drone.id as i32, *adj as i32) {
                 let (node_type2_, index) = get_node_type(*adj as i32, id_to_type); 
-                edges.push(Edge {
+                edges.push(EdgeStruct {
                     id1: drone.id as i32,
                     id2: *adj as i32,
                     node_type1: 0,
@@ -75,7 +83,7 @@ fn populate_all(parsed_drones: &Vec<ParsedDrone>, parsed_servers:&Vec<ParsedServ
                 not_adj.push(d.id as i32);
             }
         }
-        drones.push(Drone {
+        drones.push(DroneStruct {
             adjent: slint::ModelRc::new(slint::VecModel::from(adjent)),
             not_adjacent: slint::ModelRc::new(slint::VecModel::from(not_adj)),
             id: drone.id as i32,
@@ -94,7 +102,7 @@ fn populate_all(parsed_drones: &Vec<ParsedDrone>, parsed_servers:&Vec<ParsedServ
             adjent.push(*adj as i32);
             if !check_edges(&edges, client.id as i32, *adj as i32) {
                 let (node_type2_, index) = get_node_type(*adj as i32, id_to_type);
-                edges.push(Edge {
+                edges.push(EdgeStruct {
                     id1: client.id as i32,
                     id2: *adj as i32,
                     node_type1 : 1,
@@ -112,7 +120,7 @@ fn populate_all(parsed_drones: &Vec<ParsedDrone>, parsed_servers:&Vec<ParsedServ
             }
         }
 
-        clients.push(ClientServer {
+        clients.push(ClientServerStruct {
             drones_adjacent: slint::ModelRc::new(slint::VecModel::from(adjent)),
             drones_not_adjacent: slint::ModelRc::new(slint::VecModel::from(not_adj)),
             id: client.id as i32,
@@ -129,7 +137,7 @@ fn populate_all(parsed_drones: &Vec<ParsedDrone>, parsed_servers:&Vec<ParsedServ
             adjent.push(*adj as i32);
             if !check_edges(&edges, server.id as i32, *adj as i32) {
                 let (node_type2_, index) = get_node_type(*adj as i32, id_to_type);
-                edges.push(Edge {
+                edges.push(EdgeStruct {
                     id1: server.id as i32,
                     id2: *adj as i32,
                     node_type1 : 2,
@@ -147,7 +155,7 @@ fn populate_all(parsed_drones: &Vec<ParsedDrone>, parsed_servers:&Vec<ParsedServ
             }
         }
 
-        servers.push(ClientServer {
+        servers.push(ClientServerStruct {
             drones_adjacent: slint::ModelRc::new(slint::VecModel::from(adjent)),
             drones_not_adjacent: slint::ModelRc::new(slint::VecModel::from(not_adj)),
             id: server.id as i32,
@@ -156,83 +164,15 @@ fn populate_all(parsed_drones: &Vec<ParsedDrone>, parsed_servers:&Vec<ParsedServ
         i = i+1;
     }
 
-    println!("Drones: {:?}", parsed_drones);
-    println!("Client: {:?}", parsed_clients);
-    println!("Servers: {:?}", parsed_servers);
+    // println!("Drones: {:?}", parsed_drones);
+    // println!("Client: {:?}", parsed_clients);
+    // println!("Servers: {:?}", parsed_servers);
 
 
     return (drones, clients, servers);
 }
 
-// send drone commands
-fn send_drone_command(senders: &Arc<Mutex<Option<HashMap<u8, Sender<DroneCommand>>>>>, id:u8, command: Box<DroneCommand>)->Result<(), String>{
-    if let Some(ref s) = *senders.lock().unwrap() {
-        // println!("Senders map {:?}", s);
-        if let Some(sender) = s.get(&(id as u8)) {
-            let res = sender.send(*command);
-            match res {
-                Ok(_) => {
-                    // println!("DroneCommand sent to drone {}", id);
-                    return Ok(());
-                }
-                Err(e) => {
-                    let error = format!("Error sending DroneCommand to drone {}: {:?}", id, e);
-                    return Err(error);
-                }
-            }
-        } else {
-            let error = format!("No sender for drone {}", id);
-            return Err(error);
-        }
-    } else {
-        let error = format!("Empty senders map");
-        return Err(error);
-    }
-}
 
-fn get_node_type(id: i32, id_to_type: &Arc<Mutex<HashMap<i32, (NodeType, i32)>>>) -> (i32, i32) {
-    let id_to_type_ = id_to_type.lock().unwrap();
-    match id_to_type_.get(&id){
-        Some((NodeType::Drone, index)) => return (0, *index),
-        Some((NodeType::Client, index)) => return (1, *index),
-        Some((NodeType::Server, index)) => return (2, *index),
-        None => return (-1, -1),
-    }
-}
-// println!("Drones: {:?}", parsed_drones);
-// println!("Client: {:?}", parsed_clients);
-// println!("Servers: {:?}", parsed_servers);
-// // FOR PARTITION CONTROL WHEN CRASHING NODES
-// fn bfs(graph: &HashMap<i32, Vec<i32>>, drones: &vec![Drone] , clients id_start: i32) {
-//     // create the graph representation
-
-
-//     let mut queue = VecDeque::new();
-//     let mut visited = std::collections::HashSet::new();
-
-//     queue.push_back(id_start);
-//     visited.insert(id_start);
-
-//     while let Some(node) = queue.pop_front() {
-//         println!("Visited: {}", node);
-
-//         if let Some(neighbors) = graph.get(&node) {
-//             for &neighbor in neighbors {
-//                 if !visited.contains(&neighbor) {
-//                     queue.push_back(neighbor);
-//                     visited.insert(neighbor);
-//                 }
-//             }
-//         }
-//     }
-// }
-
-#[derive(Debug)]
-enum NodeType{
-    Drone,
-    Client,
-    Server,
-}
 
 fn main() -> Result<(), slint::PlatformError> {
     let logger: Arc<Mutex<Logger>> = Arc::new(Mutex::new(Logger::new(0, true, "SimulationController".to_string())));
@@ -257,7 +197,7 @@ fn main() -> Result<(), slint::PlatformError> {
 
         let nodes = c.get_nodes();
 
-        let mut edges: Vec<Edge> = vec![];
+        let mut edges: Vec<EdgeStruct> = vec![];
         let (drones, clients, servers) = populate_all(&nodes.0, &nodes.2, &nodes.1, &mut edges, &id_to_type_pos);
         println!("id_to_type_pos {:?}", id_to_type_pos.lock().unwrap());
 
@@ -278,7 +218,7 @@ fn main() -> Result<(), slint::PlatformError> {
     thread::spawn(move || {
         logger_.lock().unwrap().log_debug("Simulation started");
         if let Ok(ref mut c) = *network_initializer_run_simulation.lock().unwrap() {
-            match c.run_simulation(None, Some(vec![CLIENT_T])) {
+            match c.run_simulation(None, None) {
                 Ok(_) => {
                     logger_.lock().unwrap().log_debug("Simulation ended correctly");
                 }
@@ -314,15 +254,15 @@ fn main() -> Result<(), slint::PlatformError> {
                             if *downsample_dropped1.lock().unwrap() % 10000 == 0 {
                                 *downsample_dropped1.lock().unwrap() = 0;
                                 match weak.upgrade_in_event_loop(move |window|{
-                                    let messages : ModelRc<Message> = window.get_messages();
+                                    let messages : ModelRc<MessageStruct> = window.get_messages();
                                     let (ns1, index1) = get_node_type(packet.routing_header.hops[packet.routing_header.hop_index] as i32, &id_to_type_pos1);
                                     let (ns2, index2) = get_node_type(packet.routing_header.hops[packet.routing_header.hop_index-1] as i32, &id_to_type_pos1);
                                     
-                                    if let Some(vec_model) = messages.as_any().downcast_ref::<VecModel<Message>>() {
-                                        vec_model.push(Message{id1: packet.routing_header.hops[packet.routing_header.hop_index] as i32 , id2: packet.routing_header.hops[packet.routing_header.hop_index-1] as i32, msg_type:5, node_type1: ns1, node_type2: ns2, index1: index1, index2: index2});
+                                    if let Some(vec_model) = messages.as_any().downcast_ref::<VecModel<MessageStruct>>() {
+                                        vec_model.push(MessageStruct{id1: packet.routing_header.hops[packet.routing_header.hop_index] as i32 , id2: packet.routing_header.hops[packet.routing_header.hop_index-1] as i32, msg_type:5, node_type1: ns1, node_type2: ns2, index1: index1, index2: index2});
                                     }else{
                                         window.set_messages(slint::ModelRc::new(slint::VecModel::from(vec![
-                                            Message { id1: packet.routing_header.hops[packet.routing_header.hop_index] as i32 , id2: packet.routing_header.hops[packet.routing_header.hop_index-1] as i32, msg_type:5, node_type1: ns1, node_type2: ns2, index1: index1, index2: index2},
+                                            MessageStruct { id1: packet.routing_header.hops[packet.routing_header.hop_index] as i32 , id2: packet.routing_header.hops[packet.routing_header.hop_index-1] as i32, msg_type:5, node_type1: ns1, node_type2: ns2, index1: index1, index2: index2},
                                         ])));
                                     }    
                                 }){
@@ -343,18 +283,18 @@ fn main() -> Result<(), slint::PlatformError> {
                             let downsample_ack1 = downsample_ack.clone();
                             let downsample_nack1 = downsample_nack.clone();
                             match weak.upgrade_in_event_loop(move |window|
-                                {let messages : ModelRc<Message> = window.get_messages();
+                                {let messages : ModelRc<MessageStruct> = window.get_messages();
                                         let message; 
 
                                             match packet.pack_type{
                                                 PacketType::MsgFragment(_) => {
                                                     let (ns1, index1) = get_node_type(packet.routing_header.hops[packet.routing_header.hop_index-1] as i32, &id_to_type_pos1);
                                                     let (ns2, index2) = get_node_type(packet.routing_header.hops[packet.routing_header.hop_index] as i32, &id_to_type_pos1);
-                                                    message = Message { id1: packet.routing_header.hops[packet.routing_header.hop_index-1] as i32 , id2: packet.routing_header.hops[packet.routing_header.hop_index] as i32, msg_type:0, node_type1: ns1, node_type2: ns2, index1: index1, index2: index2};
+                                                    message = MessageStruct { id1: packet.routing_header.hops[packet.routing_header.hop_index-1] as i32 , id2: packet.routing_header.hops[packet.routing_header.hop_index] as i32, msg_type:0, node_type1: ns1, node_type2: ns2, index1: index1, index2: index2};
                                                     *downsample_msg_frag1.lock().unwrap() +=  1;
                                                     if *downsample_msg_frag1.lock().unwrap() %1000==0{
                                                         *downsample_msg_frag1.lock().unwrap() = 0;
-                                                        if let Some(vec_model) = messages.as_any().downcast_ref::<VecModel<Message>>() {
+                                                        if let Some(vec_model) = messages.as_any().downcast_ref::<VecModel<MessageStruct>>() {
                                                             vec_model.push(message);
                                                         }else{
                                                             window.set_messages(slint::ModelRc::new(slint::VecModel::from(vec![
@@ -366,11 +306,11 @@ fn main() -> Result<(), slint::PlatformError> {
                                                 PacketType::Ack(_)=> {
                                                     let (ns1, index1) = get_node_type(packet.routing_header.hops[packet.routing_header.hop_index-1] as i32, &id_to_type_pos1);
                                                     let (ns2, index2) = get_node_type(packet.routing_header.hops[packet.routing_header.hop_index] as i32, &id_to_type_pos1);
-                                                    message = Message { id1: packet.routing_header.hops[packet.routing_header.hop_index-1] as i32 , id2: packet.routing_header.hops[packet.routing_header.hop_index] as i32, msg_type:1,  node_type1: ns1, node_type2: ns2, index1: index1, index2: index2};
+                                                    message = MessageStruct { id1: packet.routing_header.hops[packet.routing_header.hop_index-1] as i32 , id2: packet.routing_header.hops[packet.routing_header.hop_index] as i32, msg_type:1,  node_type1: ns1, node_type2: ns2, index1: index1, index2: index2};
                                                     *downsample_ack1.lock().unwrap() += 1;
                                                     if *downsample_ack1.lock().unwrap()%1000==0{
                                                         *downsample_ack1.lock().unwrap() = 0;
-                                                        if let Some(vec_model) = messages.as_any().downcast_ref::<VecModel<Message>>() {
+                                                        if let Some(vec_model) = messages.as_any().downcast_ref::<VecModel<MessageStruct>>() {
                                                             vec_model.push(message);
                                                         }else{
                                                             window.set_messages(slint::ModelRc::new(slint::VecModel::from(vec![
@@ -385,11 +325,11 @@ fn main() -> Result<(), slint::PlatformError> {
                                                         _ =>{
                                                             let (ns1, index1) = get_node_type(packet.routing_header.hops[packet.routing_header.hop_index-1] as i32, &id_to_type_pos1);
                                                             let (ns2, index2) = get_node_type(packet.routing_header.hops[packet.routing_header.hop_index] as i32, &id_to_type_pos1);
-                                                            message = Message { id1: packet.routing_header.hops[packet.routing_header.hop_index-1] as i32 , id2: packet.routing_header.hops[packet.routing_header.hop_index] as i32, msg_type:2,  node_type1: ns1, node_type2: ns2, index1: index1, index2: index2};
+                                                            message = MessageStruct { id1: packet.routing_header.hops[packet.routing_header.hop_index-1] as i32 , id2: packet.routing_header.hops[packet.routing_header.hop_index] as i32, msg_type:2,  node_type1: ns1, node_type2: ns2, index1: index1, index2: index2};
                                                             *downsample_nack1.lock().unwrap() += 1;
                                                             if *downsample_nack1.lock().unwrap()%1000==0{
                                                                 *downsample_nack1.lock().unwrap() = 0;
-                                                                if let Some(vec_model) = messages.as_any().downcast_ref::<VecModel<Message>>() {
+                                                                if let Some(vec_model) = messages.as_any().downcast_ref::<VecModel<MessageStruct>>() {
                                                                     vec_model.push(message);
                                                                 }else{
                                                                     window.set_messages(slint::ModelRc::new(slint::VecModel::from(vec![
@@ -407,8 +347,8 @@ fn main() -> Result<(), slint::PlatformError> {
                                                         let (ns1, index1) = get_node_type(id_1 as i32, &id_to_type_pos1);
                                                         let (ns2, index2) = get_node_type(id_2  as i32, &id_to_type_pos1);
                                                         // println!("message: {} {} : flood {:?}", id_1, id_2, flood);
-                                                        message = Message { id1: id_1 as i32, id2: id_2 as i32, msg_type:3,  node_type1: ns1, node_type2: ns2, index1: index1, index2: index2};
-                                                        if let Some(vec_model) = messages.as_any().downcast_ref::<VecModel<Message>>() {
+                                                        message = MessageStruct { id1: id_1 as i32, id2: id_2 as i32, msg_type:3,  node_type1: ns1, node_type2: ns2, index1: index1, index2: index2};
+                                                        if let Some(vec_model) = messages.as_any().downcast_ref::<VecModel<MessageStruct>>() {
                                                             // println!("message_pushed {:?}", message);
                                                             vec_model.push(message);
                                                             
@@ -423,8 +363,8 @@ fn main() -> Result<(), slint::PlatformError> {
                                                 PacketType::FloodResponse(_)=>{
                                                     let (ns1, index1) = get_node_type(packet.routing_header.hops[packet.routing_header.hop_index-1] as i32, &id_to_type_pos1);
                                                     let (ns2, index2) = get_node_type(packet.routing_header.hops[packet.routing_header.hop_index] as i32, &id_to_type_pos1);
-                                                    message = Message { id1: packet.routing_header.hops[packet.routing_header.hop_index-1] as i32 , id2: packet.routing_header.hops[packet.routing_header.hop_index] as i32, msg_type:4,  node_type1: ns1, node_type2: ns2, index1: index1, index2: index2};
-                                                    if let Some(vec_model) = messages.as_any().downcast_ref::<VecModel<Message>>() {
+                                                    message = MessageStruct { id1: packet.routing_header.hops[packet.routing_header.hop_index-1] as i32 , id2: packet.routing_header.hops[packet.routing_header.hop_index] as i32, msg_type:4,  node_type1: ns1, node_type2: ns2, index1: index1, index2: index2};
+                                                    if let Some(vec_model) = messages.as_any().downcast_ref::<VecModel<MessageStruct>>() {
                                                         vec_model.push(message);
                                                     }else{
                                                         window.set_messages(slint::ModelRc::new(slint::VecModel::from(vec![
@@ -450,15 +390,15 @@ fn main() -> Result<(), slint::PlatformError> {
                             // let logger1 = logger_.clone();
                             let id_to_type_pos1 = id_to_type_pos_.clone();
                             match weak.upgrade_in_event_loop(move |window|
-                                {let messages : ModelRc<Message> = window.get_messages();
+                                {let messages : ModelRc<MessageStruct> = window.get_messages();
                                     let (ns1, index1 ) = get_node_type(packet.routing_header.hops[packet.routing_header.hop_index-1] as i32, &id_to_type_pos1);
                                     let (ns2, index2 )= get_node_type(packet.routing_header.hops[packet.routing_header.hop_index] as i32, &id_to_type_pos1);
                                     
-                                    if let Some(vec_model) = messages.as_any().downcast_ref::<VecModel<Message>>() {
-                                        vec_model.push(Message{id1: packet.routing_header.hops[packet.routing_header.hop_index-1] as i32 , id2: packet.routing_header.hops[packet.routing_header.hop_index] as i32, msg_type:6, node_type1: ns1, node_type2: ns2, index1: index1, index2: index2});
+                                    if let Some(vec_model) = messages.as_any().downcast_ref::<VecModel<MessageStruct>>() {
+                                        vec_model.push(MessageStruct{id1: packet.routing_header.hops[packet.routing_header.hop_index-1] as i32 , id2: packet.routing_header.hops[packet.routing_header.hop_index] as i32, msg_type:6, node_type1: ns1, node_type2: ns2, index1: index1, index2: index2});
                                     }else{
                                         window.set_messages(slint::ModelRc::new(slint::VecModel::from(vec![
-                                            Message { id1: packet.routing_header.hops[packet.routing_header.hop_index-1] as i32 , id2: packet.routing_header.hops[packet.routing_header.hop_index] as i32, msg_type:6, node_type1: ns1, node_type2: ns2, index1: index1, index2: index2},
+                                            MessageStruct { id1: packet.routing_header.hops[packet.routing_header.hop_index-1] as i32 , id2: packet.routing_header.hops[packet.routing_header.hop_index] as i32, msg_type:6, node_type1: ns1, node_type2: ns2, index1: index1, index2: index2},
                                         ])));
                                     }
    
@@ -521,7 +461,7 @@ fn main() -> Result<(), slint::PlatformError> {
             }
 
             for index in to_remove.iter().rev(){
-                if let Some(vec_model) = edges.as_any().downcast_ref::<VecModel<Edge>>() {
+                if let Some(vec_model) = edges.as_any().downcast_ref::<VecModel<EdgeStruct>>() {
                     vec_model.remove(*index);
                 }else{
                     logger_.lock().unwrap().log_warn(&format!("[ON_CRASH] Problem in downcasting edges"));
@@ -697,7 +637,7 @@ fn main() -> Result<(), slint::PlatformError> {
             let mut i = 0;
             for edge in edges.iter() {
                 if (edge.id1 == id_1 && edge.id2 == id_2) || (edge.id1 == id_2 && edge.id2 == id_1){
-                   if let Some(vec_model) = edges.as_any().downcast_ref::<VecModel<Edge>>() {
+                   if let Some(vec_model) = edges.as_any().downcast_ref::<VecModel<EdgeStruct>>() {
                         vec_model.remove(i);
                     }else{
                         logger_.lock().unwrap().log_warn("[ON_REMOVE_EDGE] Problems in downcasting edges");
@@ -791,7 +731,7 @@ fn main() -> Result<(), slint::PlatformError> {
             let mut i = 0;
             for edge in edges.iter() {
                 if (edge.id1 == id_1 && edge.id2 == id_2) || (edge.id1 == id_2 && edge.id2 == id_1){
-                   if let Some(vec_model) = edges.as_any().downcast_ref::<VecModel<Edge>>() {
+                   if let Some(vec_model) = edges.as_any().downcast_ref::<VecModel<EdgeStruct>>() {
                         vec_model.remove(i);
                     }else{
                         logger_.lock().unwrap().log_warn("[ON_REMOVE_EDGE_CLIENT_SERVER] Problems in downcasting edges");                    }
@@ -918,17 +858,17 @@ fn main() -> Result<(), slint::PlatformError> {
             let edges = window.get_edges();
             let (_, index1) = get_node_type(id_1, &id_to_type_pos_);
             let (_, index2) = get_node_type(id_2, &id_to_type_pos_);
-            if let Some(edge) = edges.as_any().downcast_ref::<VecModel<Edge>>() {
+            if let Some(edge) = edges.as_any().downcast_ref::<VecModel<EdgeStruct>>() {
                 if id_1<id_2{
-                    edge.push(Edge{id1: id_1, id2: id_2, node_type1: 0, node_type2: 0, index1: index1, index2: index2});
+                    edge.push(EdgeStruct{id1: id_1, id2: id_2, node_type1: 0, node_type2: 0, index1: index1, index2: index2});
                 }else{
-                    edge.push(Edge{id1: id_2, id2: id_1, node_type1: 0, node_type2: 0, index1: index2, index2: index1});
+                    edge.push(EdgeStruct{id1: id_2, id2: id_1, node_type1: 0, node_type2: 0, index1: index2, index2: index1});
                 }
             }
 
             // ADD ADJCENT TO NODE (and remove from not_adjacent)
             let drones = window.get_drones();
-            if let Some(drone) = drones.as_any().downcast_ref::<VecModel<Drone>>() {
+            if let Some(drone) = drones.as_any().downcast_ref::<VecModel<DroneStruct>>() {
                 for d in drone.iter(){
                     if d.id==id_1{
                         if let Some(adj) = d.adjent.as_any().downcast_ref::<VecModel<i32>>() {
@@ -1026,14 +966,14 @@ fn main() -> Result<(), slint::PlatformError> {
 
             // ADD EDGE
             let edges = window.get_edges();
-            if let Some(edge) = edges.as_any().downcast_ref::<VecModel<Edge>>() {
+            if let Some(edge) = edges.as_any().downcast_ref::<VecModel<EdgeStruct>>() {
                 let (nt1, index1) = get_node_type(id_1, &id_to_type_pos_);
                 let (nt2, index2) = get_node_type(id_2, &id_to_type_pos_);
 
                 if id_1<id_2{
-                    edge.push(Edge{id1: id_1, id2: id_2, node_type1: nt1, node_type2: nt2, index1: index1, index2: index2});
+                    edge.push(EdgeStruct{id1: id_1, id2: id_2, node_type1: nt1, node_type2: nt2, index1: index1, index2: index2});
                 }else{
-                    edge.push(Edge{id1: id_2, id2: id_1, node_type1: nt2, node_type2: nt1, index1: index2, index2: index1});
+                    edge.push(EdgeStruct{id1: id_2, id2: id_1, node_type1: nt2, node_type2: nt1, index1: index2, index2: index1});
                 }
             }else{
                 logger_.lock().unwrap().log_warn("[ON_ADD_EDGE_CLIENT_SERVER] Problems in downcasting edges");
@@ -1254,7 +1194,7 @@ fn main() -> Result<(), slint::PlatformError> {
 
                 let nodes = c.get_nodes();
 
-                let mut edges: Vec<Edge> = vec![];
+                let mut edges: Vec<EdgeStruct> = vec![];
                 // let clients = populate_clients(&nodes.1, &mut edges, &nodes.0, &id_to_type_);
                 // let drones = populate_drones(&nodes.0, &mut edges, &id_to_type_);
                 // let servers = populate_servers(&nodes.2, &mut edges, &nodes.0, &id_to_type_);
@@ -1277,7 +1217,7 @@ fn main() -> Result<(), slint::PlatformError> {
             let _ = std::fs::remove_dir_all("db/");
             thread::spawn(move || {
                 if let Ok(ref mut c)= *network_initializer_run_simulation.lock().unwrap() {
-                    match c.run_simulation(None, Some(vec![CLIENT_T])){
+                    match c.run_simulation(None, None){
                         Ok(_)=>{
                             logger1.lock().unwrap().log_debug("[ON_SELECT_NEW_FILE] Simulation correctly ended");
                         },

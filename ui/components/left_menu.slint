@@ -1,4 +1,4 @@
-import { ClientServer } from "../structs/client_server.slint";
+import { ClientServerStruct } from "../structs/client_server.slint";
 import { VerticalBox, Button } from "std-widgets.slint";
 
 export component LeftMenu inherits Window{
@@ -6,7 +6,7 @@ export component LeftMenu inherits Window{
     in-out property <string> id_selected_client_server;
     in-out property <int> position_selected_client_server;
     in-out property <string> label_id;
-    in-out property <ClientServer> selected;
+    in-out property <ClientServerStruct> selected;
     in-out property <int> edge_selected;
     callback remove_edge();
     callback add_edge();
