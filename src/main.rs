@@ -170,20 +170,43 @@ fn populate_all(parsed_drones: &Vec<ParsedDrone>, parsed_servers:&Vec<ParsedServ
     return (drones, clients, servers);
 }
 
-fn send_message(weak: &Weak<Window>, logger_: &Arc<Mutex<Logger>>, packet: Packet, id_to_type_pos1: Arc<Mutex<HashMap<i32, (NodeType, i32)>>>){
+// handle the message to be sent to the slint window
+fn send_message(weak: &Weak<Window>, logger_: &Arc<Mutex<Logger>>, packet: Packet, id_to_type_pos1: Arc<Mutex<HashMap<i32, (NodeType, i32)>>>, packet_dropped : bool, type_msg: i32){
+    // select sender and receiver
+    let mut id1= -1;
+    let mut id2= -1;
+
+    if packet_dropped{ // if packet dropped, the sender and receiver are swapped
+        id1 =packet.routing_header.hops[packet.routing_header.hop_index] as i32;
+        id2 = packet.routing_header.hops[packet.routing_header.hop_index-1] as i32;
+    }else{
+        match packet.pack_type{ 
+            PacketType::FloodRequest(flood)=>{ // in case of FloodRequest, sender and receiver are taken from the path_trace
+                id1 = flood.path_trace.get(flood.path_trace.len()-2).unwrap().0 as i32;
+                id2 = flood.path_trace.get(flood.path_trace.len()-1).unwrap().0 as i32;
+            },
+            _ => {
+                id1 = packet.routing_header.hops[packet.routing_header.hop_index-1] as i32;
+                id2 = packet.routing_header.hops[packet.routing_header.hop_index] as i32;
+            }
+        }
+    }
+
+
     let logger_int = logger_.clone();
     match weak.upgrade_in_event_loop(move |window|{
         let messages : ModelRc<MessageStruct> = window.get_messages();
-        let (ns1, index1) = get_node_type(packet.routing_header.hops[packet.routing_header.hop_index] as i32, &id_to_type_pos1);
-        let (ns2, index2) = get_node_type(packet.routing_header.hops[packet.routing_header.hop_index-1] as i32, &id_to_type_pos1);
+        let (ns1, index1) = get_node_type(id1, &id_to_type_pos1);
+        let (ns2, index2) = get_node_type(id2, &id_to_type_pos1);
         if ns1 == -1 || ns2 == -1 {
             logger_int.lock().unwrap().log_error(&format!("Error in getting node type"));
         }else{
+            let message = MessageStruct{id1: id1 , id2: id2 , msg_type: type_msg, node_type1: ns1, node_type2: ns2, index1: index1, index2: index2};
             if let Some(vec_model) = messages.as_any().downcast_ref::<VecModel<MessageStruct>>() {
-                vec_model.push(MessageStruct{id1: packet.routing_header.hops[packet.routing_header.hop_index] as i32 , id2: packet.routing_header.hops[packet.routing_header.hop_index-1] as i32, msg_type:5, node_type1: ns1, node_type2: ns2, index1: index1, index2: index2});
+                vec_model.push(message);
             }else{
                 window.set_messages(slint::ModelRc::new(slint::VecModel::from(vec![
-                    MessageStruct { id1: packet.routing_header.hops[packet.routing_header.hop_index] as i32 , id2: packet.routing_header.hops[packet.routing_header.hop_index-1] as i32, msg_type:5, node_type1: ns1, node_type2: ns2, index1: index1, index2: index2},
+                    message
                 ])));
             }    
         }
@@ -224,7 +247,6 @@ fn main() -> Result<(), slint::PlatformError> {
 
         let mut edges: Vec<EdgeStruct> = vec![];
         let (drones, clients, servers) = populate_all(&nodes.0, &nodes.2, &nodes.1, &mut edges, &id_to_type_pos);
-        println!("id_to_type_pos {:?}", id_to_type_pos.lock().unwrap());
 
         let weak = main_window.as_weak();
         if let Some(window) = weak.upgrade() {
@@ -261,148 +283,57 @@ fn main() -> Result<(), slint::PlatformError> {
                             *downsample_dropped1.lock().unwrap() += 1;
                             if *downsample_dropped1.lock().unwrap() % 10000 == 0 {
                                 *downsample_dropped1.lock().unwrap() = 0;
-                                send_message(&weak, &logger_, packet, id_to_type_pos_.clone());
+                                send_message(&weak, &logger_, packet, id_to_type_pos_.clone(), true, 5);
                             }
                         }
                         // PacketSent
                         Ok(DroneEvent::PacketSent(packet)) => {
                             logger_.lock().unwrap().log_debug(&format!("PacketSent received {:?}", packet));
-                            let id_to_type_pos1 = id_to_type_pos_.clone();
-                            let downsample_msg_frag1 = downsample_msg_frag.clone();
-                            let downsample_ack1 = downsample_ack.clone();
-                            let downsample_nack1 = downsample_nack.clone();
-                            match weak.upgrade_in_event_loop(move |window|
-                                {let messages : ModelRc<MessageStruct> = window.get_messages();
-                                        let message; 
-
-                                            match packet.pack_type{
-                                                PacketType::MsgFragment(_) => {
-                                                    let (ns1, index1) = get_node_type(packet.routing_header.hops[packet.routing_header.hop_index-1] as i32, &id_to_type_pos1);
-                                                    let (ns2, index2) = get_node_type(packet.routing_header.hops[packet.routing_header.hop_index] as i32, &id_to_type_pos1);
-                                                    message = MessageStruct { id1: packet.routing_header.hops[packet.routing_header.hop_index-1] as i32 , id2: packet.routing_header.hops[packet.routing_header.hop_index] as i32, msg_type:0, node_type1: ns1, node_type2: ns2, index1: index1, index2: index2};
-                                                    *downsample_msg_frag1.lock().unwrap() +=  1;
-                                                    if *downsample_msg_frag1.lock().unwrap() %1000==0{
-                                                        *downsample_msg_frag1.lock().unwrap() = 0;
-                                                        if let Some(vec_model) = messages.as_any().downcast_ref::<VecModel<MessageStruct>>() {
-                                                            vec_model.push(message);
-                                                        }else{
-                                                            window.set_messages(slint::ModelRc::new(slint::VecModel::from(vec![
-                                                                message,
-                                                            ])));
-                                                        }
-                                                    }
-                                                },
-                                                PacketType::Ack(_)=> {
-                                                    let (ns1, index1) = get_node_type(packet.routing_header.hops[packet.routing_header.hop_index-1] as i32, &id_to_type_pos1);
-                                                    let (ns2, index2) = get_node_type(packet.routing_header.hops[packet.routing_header.hop_index] as i32, &id_to_type_pos1);
-                                                    message = MessageStruct { id1: packet.routing_header.hops[packet.routing_header.hop_index-1] as i32 , id2: packet.routing_header.hops[packet.routing_header.hop_index] as i32, msg_type:1,  node_type1: ns1, node_type2: ns2, index1: index1, index2: index2};
-                                                    *downsample_ack1.lock().unwrap() += 1;
-                                                    if *downsample_ack1.lock().unwrap()%1000==0{
-                                                        *downsample_ack1.lock().unwrap() = 0;
-                                                        if let Some(vec_model) = messages.as_any().downcast_ref::<VecModel<MessageStruct>>() {
-                                                            vec_model.push(message);
-                                                        }else{
-                                                            window.set_messages(slint::ModelRc::new(slint::VecModel::from(vec![
-                                                                message,
-                                                            ])));
-                                                        }
-                                                    }
-                                                },
-                                                PacketType::Nack(e)=>{
-                                                    match e.nack_type{
-                                                        NackType::Dropped=>{},
-                                                        _ =>{
-                                                            let (ns1, index1) = get_node_type(packet.routing_header.hops[packet.routing_header.hop_index-1] as i32, &id_to_type_pos1);
-                                                            let (ns2, index2) = get_node_type(packet.routing_header.hops[packet.routing_header.hop_index] as i32, &id_to_type_pos1);
-                                                            message = MessageStruct { id1: packet.routing_header.hops[packet.routing_header.hop_index-1] as i32 , id2: packet.routing_header.hops[packet.routing_header.hop_index] as i32, msg_type:2,  node_type1: ns1, node_type2: ns2, index1: index1, index2: index2};
-                                                            *downsample_nack1.lock().unwrap() += 1;
-                                                            if *downsample_nack1.lock().unwrap()%1000==0{
-                                                                *downsample_nack1.lock().unwrap() = 0;
-                                                                if let Some(vec_model) = messages.as_any().downcast_ref::<VecModel<MessageStruct>>() {
-                                                                    vec_model.push(message);
-                                                                }else{
-                                                                    window.set_messages(slint::ModelRc::new(slint::VecModel::from(vec![
-                                                                        message,
-                                                                    ])));
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-                                                }, 
-                                                PacketType::FloodRequest(flood)=>{
-                                                    if flood.path_trace.len()>=2{
-                                                        let id_1 = flood.path_trace.get(flood.path_trace.len()-2).unwrap().0;
-                                                        let id_2 = flood.path_trace.get(flood.path_trace.len()-1).unwrap().0;
-                                                        let (ns1, index1) = get_node_type(id_1 as i32, &id_to_type_pos1);
-                                                        let (ns2, index2) = get_node_type(id_2  as i32, &id_to_type_pos1);
-                                                        // println!("message: {} {} : flood {:?}", id_1, id_2, flood);
-                                                        message = MessageStruct { id1: id_1 as i32, id2: id_2 as i32, msg_type:3,  node_type1: ns1, node_type2: ns2, index1: index1, index2: index2};
-                                                        if let Some(vec_model) = messages.as_any().downcast_ref::<VecModel<MessageStruct>>() {
-                                                            // println!("message_pushed {:?}", message);
-                                                            vec_model.push(message);
-                                                            
-                                                        }else{
-                                                            // println!("message_pushed {:?}", message);
-                                                            window.set_messages(slint::ModelRc::new(slint::VecModel::from(vec![
-                                                                message,
-                                                            ])));
-                                                        }
-                                                    }
-                                                }
-                                                PacketType::FloodResponse(_)=>{
-                                                    let (ns1, index1) = get_node_type(packet.routing_header.hops[packet.routing_header.hop_index-1] as i32, &id_to_type_pos1);
-                                                    let (ns2, index2) = get_node_type(packet.routing_header.hops[packet.routing_header.hop_index] as i32, &id_to_type_pos1);
-                                                    message = MessageStruct { id1: packet.routing_header.hops[packet.routing_header.hop_index-1] as i32 , id2: packet.routing_header.hops[packet.routing_header.hop_index] as i32, msg_type:4,  node_type1: ns1, node_type2: ns2, index1: index1, index2: index2};
-                                                    if let Some(vec_model) = messages.as_any().downcast_ref::<VecModel<MessageStruct>>() {
-                                                        vec_model.push(message);
-                                                    }else{
-                                                        window.set_messages(slint::ModelRc::new(slint::VecModel::from(vec![
-                                                            message,
-                                                        ])));
-                                                    }
-                                                }
-                                            }
-                                    
-                                }
-                            ){
-                                Ok(_) => {
-                                    logger_.lock().unwrap().log_debug("Message sent to window");
-                                },
-                                Err(e) => {
-                                    logger_.lock().unwrap().log_error(&format!("Error sending message to window: {}", e));
-                                }
-                            }
-                        }
-                        // ControllerShortcut
-                        Ok(DroneEvent::ControllerShortcut(packet)) => {
-                            logger_.lock().unwrap().log_debug(&format!("ControllerShortcut received {:?}", packet));
-                            // let logger1 = logger_.clone();
-                            let id_to_type_pos1 = id_to_type_pos_.clone();
-                            match weak.upgrade_in_event_loop(move |window|
-                                {let messages : ModelRc<MessageStruct> = window.get_messages();
-                                    let (ns1, index1 ) = get_node_type(packet.routing_header.hops[packet.routing_header.hop_index-1] as i32, &id_to_type_pos1);
-                                    let (ns2, index2 )= get_node_type(packet.routing_header.hops[packet.routing_header.hop_index] as i32, &id_to_type_pos1);
-                                    
-                                    if let Some(vec_model) = messages.as_any().downcast_ref::<VecModel<MessageStruct>>() {
-                                        vec_model.push(MessageStruct{id1: packet.routing_header.hops[packet.routing_header.hop_index-1] as i32 , id2: packet.routing_header.hops[packet.routing_header.hop_index] as i32, msg_type:6, node_type1: ns1, node_type2: ns2, index1: index1, index2: index2});
-                                    }else{
-                                        window.set_messages(slint::ModelRc::new(slint::VecModel::from(vec![
-                                            MessageStruct { id1: packet.routing_header.hops[packet.routing_header.hop_index-1] as i32 , id2: packet.routing_header.hops[packet.routing_header.hop_index] as i32, msg_type:6, node_type1: ns1, node_type2: ns2, index1: index1, index2: index2},
-                                        ])));
+  
+                            match packet.pack_type{
+                                PacketType::MsgFragment(_) => {
+                                    *downsample_msg_frag.lock().unwrap() +=  1;
+                                    if *downsample_msg_frag.lock().unwrap() %1000==0{
+                                        *downsample_msg_frag.lock().unwrap() = 0;
+                                        send_message(&weak, &logger_, packet, id_to_type_pos_.clone(), false, 0);
                                     }
-   
-                                }
-                            ){
-                                Ok(_) => {
-                                    logger_.lock().unwrap().log_debug("Message sent to window");
                                 },
-                                Err(e) => {
-                                    logger_.lock().unwrap().log_error(&format!("Error sending message to window: {}", e));
+                                PacketType::Ack(_)=> {
+                                    *downsample_ack.lock().unwrap() += 1;
+                                    if *downsample_ack.lock().unwrap()%1000==0{
+                                        *downsample_ack.lock().unwrap() = 0;
+                                        send_message(&weak, &logger_, packet, id_to_type_pos_.clone(), false, 1);
+                                    }
+                                },
+                                PacketType::Nack(ref e)=>{
+                                    match e.nack_type{
+                                        NackType::Dropped=>{}, // avoid sending Nack because duplicate of PacketDropped
+                                        _ =>{
+                                            *downsample_nack.lock().unwrap() += 1;
+                                            if *downsample_nack.lock().unwrap()%1000==0{
+                                                *downsample_nack.lock().unwrap() = 0;
+                                                send_message(&weak, &logger_, packet, id_to_type_pos_.clone(), false, 2);
+                                            }
+                                        }
+                                    }
+                                }, 
+                                PacketType::FloodRequest(ref flood)=>{
+                                    if flood.path_trace.len()>=2{
+                                        send_message(&weak, &logger_, packet, id_to_type_pos_.clone(), false, 3);
+                                    }
+                                }
+                                PacketType::FloodResponse(_)=>{
+                                    send_message(&weak, &logger_, packet, id_to_type_pos_.clone(), false, 4);
                                 }
                             }
                         },
+                        // ControllerShortcut
+                        Ok(DroneEvent::ControllerShortcut(packet)) => {
+                            logger_.lock().unwrap().log_debug(&format!("ControllerShortcut received {:?}", packet));
+                            send_message(&weak, &logger_, packet, id_to_type_pos_.clone(), false, 6);
+                        },
                         Err(TryRecvError::Empty) => {
-                            // logger_.lock().unwrap().log_debug("Empty");
+                            logger_.lock().unwrap().log_warn("Empty channel");
                         },
                         Err(e) => {
                             logger_.lock().unwrap().log_error(&format!("Error receiving message: {}", e));
