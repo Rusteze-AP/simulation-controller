@@ -4,7 +4,7 @@
             "id": 0,
             "title": "dancing_pirate",
             "description": "A dancing pirate",
-            "duration": 0,
+            "duration": 28,
             "mime_type": "video/mp4",
             "created_at": "0"
         },
@@ -12,7 +12,7 @@
             "id": 0,
             "title": "gandalf_sax",
             "description": "Gandalf playing the sax",
-            "duration": 0,
+            "duration": 17,
             "mime_type": "video/mp4",
             "created_at": "0"
         },

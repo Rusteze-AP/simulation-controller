@@ -3,7 +3,7 @@
         {
             "id": 0,
             "title": "freaks",
-            "description": "freaks",
+            "description": "Dad and son smashing the oven",
             "duration": 15,
             "mime_type": "video/mp4",
             "created_at": "0"
@@ -11,7 +11,7 @@
         {
             "id": 0,
             "title": "doggie",
-            "description": "freakdoggie",
+            "description": "A very cute dog",
             "duration": 60,
             "mime_type": "video/mp4",
             "created_at": "0"
