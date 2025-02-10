@@ -1,12 +1,10 @@
 slint::include_modules!();
 use crossbeam::channel::Sender;
 use network_initializer::{errors::ConfigError, NetworkInitializer};
-use slint::{Model, ModelRc, VecModel, Weak};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use wg_internal::controller::DroneCommand;
-use wg_internal::packet::{NackType, Packet, PacketType};
 
 use logger::{LogLevel, Logger};
 

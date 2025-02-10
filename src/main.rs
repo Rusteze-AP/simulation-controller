@@ -499,7 +499,7 @@ fn main() -> Result<(), slint::PlatformError> {
                 }
             }
 
-            // REMOVE ALL ADJACENT of others
+            // remove its id from adjacent of others
             let drones = window.get_drones();
             for drone in drones.iter() {
                 let mut i = 0;
@@ -543,7 +543,6 @@ fn main() -> Result<(), slint::PlatformError> {
                 }
             }
 
-            //same for servers and clients
             let servers = window.get_servers();
             for server in servers.iter() {
                 let mut i = 0;
@@ -593,7 +592,6 @@ fn main() -> Result<(), slint::PlatformError> {
                 }
             }
 
-            //same for servers and clients
             let clients = window.get_clients();
             for client in clients.iter() {
                 let mut i = 0;
@@ -642,7 +640,7 @@ fn main() -> Result<(), slint::PlatformError> {
                 }
             }
 
-            // DROP IT'S CHANNELS from channels and senders
+            // drop its channels and senders
             if let Some(ref mut channel) = *channels_.lock().unwrap() {
                 channel.remove(&(id as u8));
             } else {
@@ -666,6 +664,7 @@ fn main() -> Result<(), slint::PlatformError> {
     let logger_ = logger.clone();
     let weak = main_window.as_weak();
     let senders = sc_senders.clone();
+    // ON REMOVE EDGE : handler for remove edge event
     main_window.on_remove_edge(move || {
         logger_.lock().unwrap().log_info("[ON_REMOVE_EDGE]");
 
@@ -673,7 +672,7 @@ fn main() -> Result<(), slint::PlatformError> {
             let id_1 = window.get_sender_id();
             let id_2 = window.get_receiver_id();
 
-            // COMMUNICATE REMOTION TO DRONES to id_1 and id_2
+            // send DroneCommand to id_1 and id_2
             send_drone_command(
                 &senders,
                 id_1 as u8,
@@ -687,7 +686,7 @@ fn main() -> Result<(), slint::PlatformError> {
                 &logger_,
             );
 
-            // REMOVE EDGE
+            // remove edge from edges
             let edges = window.get_edges();
             let mut i = 0;
             for edge in edges.iter() {
@@ -706,7 +705,7 @@ fn main() -> Result<(), slint::PlatformError> {
                 i = i + 1;
             }
 
-            // REMOVE ADJACENT
+            // remove adjacents
             let drones = window.get_drones();
             for drone in drones.iter() {
                 if drone.id == id_1 {
@@ -772,6 +771,7 @@ fn main() -> Result<(), slint::PlatformError> {
     let logger_ = logger.clone();
     let weak = main_window.as_weak();
     let senders = sc_senders.clone();
+    // ON REMOVE EDGE CLIENT SERVER : handler for remove edge client server event
     main_window.on_remove_edge_client_server(move || {
         logger_
             .lock()
@@ -782,7 +782,7 @@ fn main() -> Result<(), slint::PlatformError> {
             let id_1 = window.get_sender_id();
             let id_2 = window.get_receiver_id();
 
-            // COMMUNICATE REMOTION TO DRONES to id_1 and id_2
+            // send DroneCommand to id1 and id2
             send_drone_command(
                 &senders,
                 id_1 as u8,
@@ -797,7 +797,7 @@ fn main() -> Result<(), slint::PlatformError> {
                 &logger_,
             );
 
-            // REMOVE EDGE
+            // remove edge
             let edges = window.get_edges();
             let mut i = 0;
             for edge in edges.iter() {
@@ -815,7 +815,7 @@ fn main() -> Result<(), slint::PlatformError> {
                 i = i + 1;
             }
 
-            // REMOVE ADJACENT FROM CLIENT/SERVER
+            // remove adjacent and not_adjacent
             let tmp1: i32; // lower -> drone
             let tmp2: i32; // higher -> client or server
             if id_1 < id_2 {
@@ -887,6 +887,7 @@ fn main() -> Result<(), slint::PlatformError> {
     let senders = sc_senders.clone();
     let channels_ = channels.clone();
     let id_to_type_pos_ = id_to_type_pos.clone();
+    // ON ADD EDGE : handler for add edge event
     main_window.on_add_edge(move || {
         logger_.lock().unwrap().log_info("[ON_ADD_EDGE]");
 
@@ -897,6 +898,7 @@ fn main() -> Result<(), slint::PlatformError> {
             let mut sender_id_1: Option<Sender<Packet>> = None;
             let mut sender_id_2: Option<Sender<Packet>> = None;
 
+            // retrieve channels to send in the droneCommand
             if let Some(ref mut channel) = *channels_.lock().unwrap() {
                 if let Some(ch_1) = (*channel).get(&(id_1 as u8)) {
                     sender_id_1 = Some(ch_1.sender.clone());
@@ -922,7 +924,7 @@ fn main() -> Result<(), slint::PlatformError> {
                     .log_error("[ON_ADD_EDGE] No sender map loaded");
             }
 
-            // COMMUNICATE ADDITION TO DRONES to id_1 and id_2
+            // send DroneCommand to id_1 and id_2
             if let Some(s_id_2) = sender_id_2 {
                 send_drone_command(
                     &senders,
@@ -951,7 +953,7 @@ fn main() -> Result<(), slint::PlatformError> {
                     .log_error(&format!("[ON_ADD_EDGE] No sender for drone {}", id_1));
             }
 
-            // ADD EDGE
+            // add edge
             let edges = window.get_edges();
             let (_, index1) = get_node_type(id_1, &id_to_type_pos_);
             let (_, index2) = get_node_type(id_2, &id_to_type_pos_);
@@ -977,7 +979,7 @@ fn main() -> Result<(), slint::PlatformError> {
                 }
             }
 
-            // ADD ADJCENT TO NODE (and remove from not_adjacent)
+            // add adjacent to nodes (and remove from not_adjacent)
             let drones = window.get_drones();
             if let Some(drone) = drones.as_any().downcast_ref::<VecModel<DroneStruct>>() {
                 for d in drone.iter() {
@@ -1024,6 +1026,7 @@ fn main() -> Result<(), slint::PlatformError> {
     let senders = sc_senders.clone();
     let channels_ = channels.clone();
     let id_to_type_pos_ = id_to_type_pos.clone();
+    // ON ADD EDGE CLIENT SERVER : handler for add edge client server event
     main_window.on_add_edge_client_server(move || {
         logger_
             .lock()
@@ -1036,6 +1039,7 @@ fn main() -> Result<(), slint::PlatformError> {
             let mut sender_id_1: Option<Sender<Packet>> = None;
             let mut sender_id_2: Option<Sender<Packet>> = None;
 
+            // retrieve channels to send in the DroneCommand
             if let Some(ref mut channel) = *channels_.lock().unwrap() {
                 if let Some(ch_1) = (*channel).get(&(id_1 as u8)) {
                     sender_id_1 = Some(ch_1.sender.clone());
@@ -1080,7 +1084,7 @@ fn main() -> Result<(), slint::PlatformError> {
                 );
             }
 
-            // ADD EDGE
+            // add edge
             let edges = window.get_edges();
             if let Some(edge) = edges.as_any().downcast_ref::<VecModel<EdgeStruct>>() {
                 let (nt1, index1) = get_node_type(id_1, &id_to_type_pos_);
@@ -1112,7 +1116,7 @@ fn main() -> Result<(), slint::PlatformError> {
                     .log_warn("[ON_ADD_EDGE_CLIENT_SERVER] Problems in downcasting edges");
             }
 
-            // ADD ADJCENT TO CLIENT/SERVER (and remove from not_adjacent)
+            // add adjacent (and remove from not_adjacent)
             let tmp1: i32; // lower -> drone
             let tmp2: i32; // higher -> client or server
             if id_1 < id_2 {
@@ -1181,7 +1185,7 @@ fn main() -> Result<(), slint::PlatformError> {
     let logger_ = logger.clone();
     let weak = main_window.as_weak();
     let senders = sc_senders.clone();
-
+    // ON CHANGE PDR : handler for change packet drop rate
     main_window.on_change_pdr(move || {
         logger_.lock().unwrap().log_info("[ON_CHANGE_PDR]");
         if let Some(window) = weak.upgrade() {
@@ -1205,12 +1209,14 @@ fn main() -> Result<(), slint::PlatformError> {
     let id_to_type_pos_ = id_to_type_pos.clone();
     let network_initializer_: Arc<Mutex<Result<NetworkInitializer, ConfigError>>> =
         network_initializer.clone();
+
+    // ON SELECT NEW FILE : handler for select new file
     main_window.on_select_new_file(move || {
         logger_.lock().unwrap().log_info("[ON_SELECT_NEW_FILE]");
         let mut new_path: String = String::from("");
         let mut failed: bool = true;
 
-        // // take new path
+        // take new path
         let file = FileDialog::new().pick_file();
         if let Some(mut path) = file {
             let path_string = <OsString as Clone>::clone(&path.as_mut_os_string()).into_string();
@@ -1223,7 +1229,8 @@ fn main() -> Result<(), slint::PlatformError> {
             }
         }
 
-        // if it is valid, clean up all structures
+        // if it is valid, clean up all structures and send DroneCommand to kill drones and RemoveChannels
+        // then remove senders and channels for each of them
         match NetworkInitializer::new(Some(&new_path)) {
             Ok(net_init) => {
                 if let Some(window) = weak.upgrade() {
@@ -1337,6 +1344,7 @@ fn main() -> Result<(), slint::PlatformError> {
             }
         }
 
+        // set up new configuration
         if !failed {
             if let Ok(ref mut c) = *network_initializer_.lock().unwrap() {
                 *sc_receiver_.lock().unwrap() = Some((*c).get_controller_recv());
@@ -1347,9 +1355,6 @@ fn main() -> Result<(), slint::PlatformError> {
                 let nodes = c.get_nodes();
 
                 let mut edges: Vec<EdgeStruct> = vec![];
-                // let clients = populate_clients(&nodes.1, &mut edges, &nodes.0, &id_to_type_);
-                // let drones = populate_drones(&nodes.0, &mut edges, &id_to_type_);
-                // let servers = populate_servers(&nodes.2, &mut edges, &nodes.0, &id_to_type_);
                 let (drones, clients, servers) =
                     populate_all(nodes.0, nodes.2, nodes.1, &mut edges, &id_to_type_pos_);
                 println!("id_to_type {:?}", *id_to_type_pos_.lock().unwrap());
@@ -1363,7 +1368,7 @@ fn main() -> Result<(), slint::PlatformError> {
                 }
             }
 
-            // run configuration
+            // run configuration in a separate thread
             let network_initializer_run_simulation = network_initializer_.clone();
             let logger1 = logger_.clone();
             let _ = std::fs::remove_dir_all("db/");
@@ -1414,6 +1419,7 @@ fn main() -> Result<(), slint::PlatformError> {
         match weak.upgrade_in_event_loop(move |window| {
             let drones = window.get_drones();
 
+            // send DroneCommand crash to all of them and remove all connections
             for drone in drones.iter() {
                 send_drone_command(
                     &senders1,
@@ -1522,6 +1528,6 @@ fn main() -> Result<(), slint::PlatformError> {
     .expect("Error setting Ctrl+C handler");
 
     let _res = main_window.run();
-    run_sim_thread_handler.join().unwrap();
+    run_sim_thread_handler.join().unwrap(); //handler of the first running simulation
     Ok(())
 }
