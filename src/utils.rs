@@ -80,14 +80,14 @@ pub fn run_simulation_thread(
     network_initializer_run_simulation: Arc<Mutex<Result<NetworkInitializer, ConfigError>>>,
 ) -> std::thread::JoinHandle<()> {
     thread::spawn(move || {
-        logger_.lock().unwrap().log_debug("Simulation started");
+        logger_.lock().unwrap().log_info("Simulation started");
         if let Ok(ref mut c) = *network_initializer_run_simulation.lock().unwrap() {
             match c.run_simulation(None, None) {
                 Ok(_) => {
                     logger_
                         .lock()
                         .unwrap()
-                        .log_debug("Simulation ended correctly");
+                        .log_info("Simulation ended correctly");
                 }
                 Err(e) => {
                     let error = format!("Simulation ended with error {}", e);
