@@ -31,3 +31,5 @@ There are two types of clients: **audio** and **video**. Each client will be abl
   - Share its file list with the Server.
   - Request peer lists that have the desired file from the Server.
 - **File chunk management**: Manage which chunks of the file has been downloaded and which chunks are missing.
+
+Presentation: [Rust-eze presentation](https://www.canva.com/design/DAGetvV6idQ/vh7g-1nROe4iQjRrYg-ZGg/view?utm_content=DAGetvV6idQ&utm_campaign=designshare&utm_medium=link2&utm_source=uniquelinks&utlId=h19bc15de3d)
